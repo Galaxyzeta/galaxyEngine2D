@@ -2,6 +2,7 @@ package core
 
 import (
 	"galaxyzeta.io/engine/graphics"
+	"galaxyzeta.io/engine/input/keys"
 	"galaxyzeta.io/engine/linalg"
 	"sync"
 )
@@ -39,26 +40,29 @@ var sceneMap map[string]*scene
 // |	     Mutex 		 	|
 // +------------------------+
 
+type MutexIndex uint8
+
 const (
-	mutex_ScreenResolution uint8 = iota
-	mutex_Title
-	mutex_Keyboard_Pressed
-	mutex_Keyboard_Held
-	mutex_Keyboard_Released
+	Mutex_ScreenResolution MutexIndex = iota
+	Mutex_Title
+	Mutex_SceneName
+	Mutex_Keyboard_Pressed
+	Mutex_Keyboard_Held
+	Mutex_Keyboard_Released
 )
 
-var mutextList []sync.RWMutex
+var mutexList []*sync.RWMutex
 
 // +------------------------+
 // |	    CAS var 	 	|
 // +------------------------+
 
 const (
-	cas_true  int32 = 1
-	cas_false int32 = 0
+	Cas_True  int32 = 1
+	Cas_False int32 = 0
 )
 const (
-	cas_coreController = iota
+	Cas_CoreController = iota
 )
 
 var casList []int32
@@ -69,7 +73,7 @@ var casList []int32
 
 const (
 	KeyRelease = iota
-	KeyPressed
+	KeyPress
 	KeyHold
 )
 
@@ -80,5 +84,5 @@ const (
 var currentSceneName string
 var screenResolution *linalg.Vector2i
 var title string
-var inputBuffer []map[int]struct{}
-var coreController *masterLoop
+var inputBuffer []map[keys.Key]struct{}
+var coreController *MasterLoop

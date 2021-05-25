@@ -1,6 +1,9 @@
 package core
 
-import "sync"
+import (
+	"galaxyzeta.io/engine/input/keys"
+	"sync"
+)
 
 func GlobalInitializer() {
 	// init pools
@@ -8,24 +11,24 @@ func GlobalInitializer() {
 	objPoolInit(&inactivePool)
 
 	// init mutexList
-	mutextList = make([]sync.RWMutex, 8)
-	for idx := range mutextList {
-		mutextList[idx] = sync.RWMutex{}
+	mutexList = make([]*sync.RWMutex, 8)
+	for idx := range mutexList {
+		mutexList[idx] = &sync.RWMutex{}
 	}
 
 	// init casList
 	casList = make([]int32, 8)
-	for idx := range mutextList {
-		casList[idx] = cas_false
+	for idx := range mutexList {
+		casList[idx] = Cas_False
 	}
 
 	// init global stuff
 	sceneMap = make(map[string]*scene)
 	currentSceneName = ""
-	inputBuffer = make([]map[int]struct{}, 3)
-	inputBuffer[KeyPressed] = map[int]struct{}{}
-	inputBuffer[KeyHold] = map[int]struct{}{}
-	inputBuffer[KeyRelease] = map[int]struct{}{}
+	inputBuffer = make([]map[keys.Key]struct{}, 3)
+	inputBuffer[KeyPress] = map[keys.Key]struct{}{}
+	inputBuffer[KeyHold] = map[keys.Key]struct{}{}
+	inputBuffer[KeyRelease] = map[keys.Key]struct{}{}
 }
 
 // objPoolInit inits a map[label]objPool. Reduce duplicated code.

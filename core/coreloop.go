@@ -37,9 +37,9 @@ type AppConfig struct {
 	InitFunc    func() // will be called before we start main thread.
 }
 
-// masterLoop communicates with OpenGL frontend to do rendering jobs, also manages all sub routines for physical updates.
-// There is only one masterLoop in each process.
-type masterLoop struct {
+// MasterLoop communicates with OpenGL frontend to do rendering jobs, also manages all sub routines for physical updates.
+// There is only one MasterLoop in each process.
+type MasterLoop struct {
 	// --- concurrency control
 	workers      []*subLoop
 	workersCount int
@@ -68,16 +68,16 @@ type subLoop struct {
 	shouldResetInputBuffer bool                       // Mark whether this subLoop is responsible for resetting inputBuffer.
 }
 
-// newMasterLoop returns a new masterGameLoopController. SubworkersCount is ensured to have at least 1.
+// NewMasterLoop returns a new masterGameLoopController. SubworkersCount is ensured to have at least 1.
 // Not thread safe, no need to do that.
-func newMasterLoop(cfg *AppConfig) *masterLoop {
-	if !atomic.CompareAndSwapInt32(&casList[cas_coreController], cas_false, cas_true) {
+func NewMasterLoop(cfg *AppConfig) *MasterLoop {
+	if !atomic.CompareAndSwapInt32(&casList[Cas_CoreController], Cas_False, Cas_True) {
 		panic("cannot have two masterGameLoopController in a standalone process")
 	}
 	if cfg.WorkerCount < 1 {
 		cfg.WorkerCount = 1
 	}
-	main := &masterLoop{
+	main := &MasterLoop{
 		status:       GameLoopStats_Created,
 		physicalFPS:  time.Duration(cfg.PhysicalFps),
 		renderFPS:    time.Duration(cfg.RenderFps),
@@ -89,9 +89,9 @@ func newMasterLoop(cfg *AppConfig) *masterLoop {
 		initFunc:     cfg.InitFunc,
 	}
 
-	mutextList[mutex_ScreenResolution].Lock()
+	mutexList[Mutex_ScreenResolution].Lock()
 	screenResolution = cfg.Resolution
-	mutextList[mutex_ScreenResolution].Unlock()
+	mutexList[Mutex_ScreenResolution].Unlock()
 
 	sg := make([]*cc.SynergyGate, 0, 3)
 	for i := 0; i < 3; i++ {
@@ -111,9 +111,9 @@ func newMasterLoop(cfg *AppConfig) *masterLoop {
 	return main
 }
 
-// runNoBlocking creates goroutine for each subGameLoopController to work. Not blocking.
-// Not thread safe, you have no need, and should not call runNoBlocking in concurrent execution environment.
-func (g *masterLoop) runNoBlocking() {
+// RunNoBlocking creates goroutine for each subGameLoopController to work. Not blocking.
+// Not thread safe, you have no need, and should not call RunNoBlocking in concurrent execution environment.
+func (g *MasterLoop) RunNoBlocking() {
 	if g.status == GameLoopStats_Running {
 		panic("cannot run a controller twice")
 	}
@@ -125,7 +125,7 @@ func (g *masterLoop) runNoBlocking() {
 	}
 
 	g.wg.Add(1)
-	go renderLoop(ScreenResolution(), Title(), g.doRender, g.wg, g.sigKill)
+	go renderLoop(screenResolution, title, g.doRender, g.wg, g.sigKill)
 
 	g.running = true
 	g.status = GameLoopStats_Running
@@ -133,7 +133,7 @@ func (g *masterLoop) runNoBlocking() {
 }
 
 // Kill terminates all sub workers.
-func (g *masterLoop) kill() {
+func (g *MasterLoop) Kill() {
 	fmt.Println("kill")
 	for _, worker := range g.workers {
 		fmt.Println("emit kill")
@@ -143,13 +143,13 @@ func (g *masterLoop) kill() {
 	g.running = false
 }
 
-// wait masterLoop and all subLoops to be killed. Blocking.
-func (g *masterLoop) wait() {
+// Wait MasterLoop and all subLoops to be killed. Blocking.
+func (g *MasterLoop) Wait() {
 	g.wg.Wait()
 }
 
 // roundRobin selects a subLoop by round-robin strategy.
-func (g *masterLoop) roundRobin() *subLoop {
+func (g *MasterLoop) roundRobin() *subLoop {
 	s := g.workers[roundRobin]
 	roundRobin = (roundRobin + 1) % g.workersCount
 	return s
@@ -161,7 +161,7 @@ func (g *masterLoop) roundRobin() *subLoop {
 //____________________________________
 
 // newSubGameLoopController returns a subGameLoopController.
-func (m *masterLoop) newSubGameLoopController(sg []*cc.SynergyGate, name string) *subLoop {
+func (m *MasterLoop) newSubGameLoopController(sg []*cc.SynergyGate, name string) *subLoop {
 	g := &subLoop{
 		name:              name,
 		registerChannel:   make(chan resourceAccessRequest, InstantiateChannelSize),
@@ -204,7 +204,7 @@ func (g *subLoop) subLoopExit() {
 // 		  Processor Functions
 //____________________________________
 
-func (g *masterLoop) doRender() {
+func (g *MasterLoop) doRender() {
 	for _, pool := range activePool {
 		for gameObj := range pool {
 			obj2d := gameObj.GetGameObject2D()
@@ -229,15 +229,13 @@ func (g *subLoop) doPhysicalUpdate() {
 	g.synergyGates[1].Wait()
 	// 2. do step
 	for iobj2d := range g.processingPool {
-		fmt.Println("before update", g.name)
 		iobj2d.GetGameObject2D().Callbacks.OnStep(iobj2d)
-		fmt.Println("update ok", g.name)
 	}
 	g.synergyGates[2].Wait()
 
 	// flush input buffer, only one subLoop can do this.
 	if g.shouldResetInputBuffer {
-		flushInputBuffer()
+		FlushInputBuffer()
 	}
 	// 3. check whether there are items to unregister
 	for len(g.unregisterChannel) > 0 {

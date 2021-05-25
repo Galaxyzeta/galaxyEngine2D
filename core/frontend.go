@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"galaxyzeta.io/engine/input/keys"
 	"runtime"
 	"sync"
 
@@ -19,6 +20,24 @@ func initOpenGL() uint32 {
 	prog := gl.CreateProgram()
 	gl.LinkProgram(prog)
 	return prog
+}
+
+// keyboardCb is a function that will be used in OpenGL keyboard callback.
+//
+// We register and unregister KeyHold status when detecting KeyPress and KeyReleased
+// instead of registering the KeyHold for a KeyHold callback and auto unregister it in subLoop automatically,
+// because keyboard callback frequency is different from physical update frequency (also
+// keyboard status reset frequency), which will cause undetected keys held situations
+// during step update.
+func keyboardCb(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+	switch action {
+	case glfw.Press:
+		SetInputBuffer(keys.Action_KeyPress, keys.Key(key))
+		SetInputBuffer(keys.Action_KeyHold, keys.Key(key))
+	case glfw.Release:
+		SetInputBuffer(keys.Action_KeyRelease, keys.Key(key))
+		UnsetInputBuffer(keys.Action_KeyHold, keys.Key(key))
+	}
 }
 
 func renderLoop(resolution *linalg.Vector2i, title string, renderFunc func(), wg *sync.WaitGroup, sigKill <-chan struct{}) {

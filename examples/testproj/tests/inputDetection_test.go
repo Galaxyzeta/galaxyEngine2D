@@ -1,6 +1,7 @@
-package test
+package tests
 
 import (
+	"galaxyzeta.io/engine/sdk"
 	"testing"
 
 	"galaxyzeta.io/engine/core"
@@ -13,14 +14,14 @@ func init() {
 }
 
 func TestGameEngine(t *testing.T) {
-	core.StartApplication(&core.AppConfig{
+	sdk.StartApplication(&core.AppConfig{
 		Resolution:  &linalg.Vector2i{X: 640, Y: 320},
 		PhysicalFps: 60,
 		RenderFps:   60,
 		WorkerCount: 4,
 		Title:       "Test Window",
 		InitFunc: func() {
-			core.Create(objs.TestImplementedGameObject2D_OnCreate)
+			sdk.Create(objs.TestImplementedGameObject2D_OnCreate)
 		},
 	})
 }
