@@ -1,19 +1,17 @@
 package tests
 
 import (
-	"galaxyzeta.io/engine/sdk"
-	"testing"
-
 	"galaxyzeta.io/engine/core"
 	objs "galaxyzeta.io/engine/examples/testproj/userspace"
 	"galaxyzeta.io/engine/linalg"
+	"galaxyzeta.io/engine/sdk"
 )
 
 func init() {
 	core.GlobalInitializer()
 }
 
-func TestGameEngine(t *testing.T) {
+func TstGameEngine() {
 	sdk.StartApplication(&core.AppConfig{
 		Resolution:  &linalg.Vector2i{X: 640, Y: 320},
 		PhysicalFps: 60,

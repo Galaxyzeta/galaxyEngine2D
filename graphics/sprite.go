@@ -21,11 +21,11 @@ func (spr *Sprite) GetLazyLoad() bool {
 	return spr.lazyload
 }
 
-func NewSprite(fileName string, lazyLoad bool, OffsetX float64, OffsetY float64) *Sprite {
+func NewSprite(fileNamePng string, lazyLoad bool, OffsetX float64, OffsetY float64) *Sprite {
 	var img image.Image = nil
 	var err error
 	if !lazyLoad {
-		img, err = ReadPng(fileName)
+		img, err = ReadPng(fileNamePng)
 		if err != nil {
 			panic(err)
 		}
@@ -40,15 +40,19 @@ func NewSprite(fileName string, lazyLoad bool, OffsetX float64, OffsetY float64)
 
 // ---- Implement IRenderable2D ----
 
-// Render sprite.
+// Render sprite. Sprite must exist.
 func (spr *Sprite) Render(ox float64, oy float64) {
+	if spr.img == nil {
+		return;
+	}
 	if spr.glTexture == 0 {
 		// not registered
 		GlSpriteRegister(spr.img, spr)
 	}
+	GLRenderSprite(ox, oy, spr)
 }
 
-// Z gets sprite's z direction depth.
+// Depth gets sprite's z direction depth.
 func (spr *Sprite) Depth() int {
 	return spr.Z
 }

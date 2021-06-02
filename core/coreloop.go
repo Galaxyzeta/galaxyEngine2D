@@ -124,11 +124,14 @@ func (g *MasterLoop) RunNoBlocking() {
 		go worker.runSubWorker()
 	}
 
-	g.wg.Add(1)
-	go renderLoop(screenResolution, title, g.doRender, g.wg, g.sigKill)
-
 	g.running = true
 	g.status = GameLoopStats_Running
+
+	g.wg.Add(1)
+
+	// --- begin infinite loop
+	renderLoop(screenResolution, title, g.doRender, g.wg, g.sigKill)
+	// --- stop infinite loop, maybe sigkill or something else
 
 }
 
@@ -208,8 +211,8 @@ func (g *MasterLoop) doRender() {
 	for _, pool := range activePool {
 		for gameObj := range pool {
 			obj2d := gameObj.GetGameObject2D()
-			if obj2d.IsVisible {
-				// obj2d.Sprite.Render(obj2d.currentStats.Position.X, obj2d.currentStats.Position.Y)
+			if obj2d.IsVisible && obj2d.Sprite != nil {
+				obj2d.Sprite.Render(obj2d.currentStats.Position.X, obj2d.currentStats.Position.Y)
 			}
 		}
 	}

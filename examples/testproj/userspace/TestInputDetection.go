@@ -31,6 +31,7 @@ func TestImplementedGameObject2D_OnCreate() core.IGameObject2D {
 		RegisterRender(__TestImplementedGameObject2D_OnRender).
 		RegisterStep(__TestImplementedGameObject2D_OnStep).
 		RegisterDestroy(__TestImplementedGameObject2D_OnDestroy)
+	//gameObject2D.Sprite = graphics.NewSprite("./examples/static/Mudkip.png", false, 0, 0)
 	return &TestInputDetection{
 		GameObject2D:           gameObject2D,
 		counter:                0,
