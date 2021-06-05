@@ -2,10 +2,19 @@ package core
 
 import (
 	"galaxyzeta.io/engine/input/keys"
+	"os"
+	"runtime"
 	"sync"
 )
 
 func GlobalInitializer() {
+	// must get cwd
+	var err error
+	cwd, err = os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
 	// init pools
 	objPoolInit(&activePool)
 	objPoolInit(&inactivePool)
@@ -29,6 +38,9 @@ func GlobalInitializer() {
 	inputBuffer[KeyPress] = map[keys.Key]struct{}{}
 	inputBuffer[KeyHold] = map[keys.Key]struct{}{}
 	inputBuffer[KeyRelease] = map[keys.Key]struct{}{}
+
+	// must lock os thread
+	runtime.LockOSThread()
 }
 
 // objPoolInit inits a map[label]objPool. Reduce duplicated code.

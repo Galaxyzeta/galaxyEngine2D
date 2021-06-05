@@ -2,3 +2,11 @@ github.com/go-gl/gl v0.0.0-20210501111010-69f74958bac0 h1:7xNa69TzlTrKtlBtE4yyNR
 github.com/go-gl/gl v0.0.0-20210501111010-69f74958bac0/go.mod h1:wjpnOv6ONl2SuJSxqCPVaPZibGFdSci9HFocT9qtVYM=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20210410170116-ea3d685f79fb h1:T6gaWBvRzJjuOrdCtg8fXXjKai2xSDqWTcKFUPuw8Tw=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20210410170116-ea3d685f79fb/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
+github.com/go-gl/glow v0.0.0-20210428203626-640349a6105e h1:0YDVfxFeXpP/oSs4+k6bxmLoXwNr2MH8Al5IFrVcUCE=
+github.com/go-gl/glow v0.0.0-20210428203626-640349a6105e/go.mod h1:qQr/Sgsn8vJu0Xf8rAAzkUdwpomUUwDhEOxoBowfuMY=
+golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
+golang.org/x/net v0.0.0-20190311183353-d8887717615a/go.mod h1:t9HGtf8HONx5eT2rtn7q6eTqICYqUVnKs3thJo3Qplg=
+golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
+golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
+golang.org/x/tools v0.0.0-20190402200628-202502a5a924 h1:XgD7l1aFq63td2d4omZwFUpt50/DxIpXW3yrk+V4EOc=
+golang.org/x/tools v0.0.0-20190402200628-202502a5a924/go.mod h1:LCzVGOaR6xXOjkQ3onu1FJEFr0SW1gC7cKk1uF8kGRs=

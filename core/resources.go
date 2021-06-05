@@ -86,3 +86,4 @@ var screenResolution *linalg.Vector2i
 var title string
 var inputBuffer []map[keys.Key]struct{}
 var coreController *MasterLoop
+var cwd string

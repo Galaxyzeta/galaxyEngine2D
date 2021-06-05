@@ -13,7 +13,6 @@ import (
 func StartApplication(cfg *core.AppConfig) {
 	g := core.NewMasterLoop(cfg)
 	g.RunNoBlocking()
-	g.Wait()
 }
 
 // ScreenResolution get current screen's resolution. It is thread-safe.

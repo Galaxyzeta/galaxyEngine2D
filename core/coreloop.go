@@ -118,21 +118,24 @@ func (g *MasterLoop) RunNoBlocking() {
 		panic("cannot run a controller twice")
 	}
 
+	window := initOpenGL(screenResolution, title)
 	g.initFunc()
 
 	for _, worker := range g.workers {
+		g.wg.Add(1)
 		go worker.runSubWorker()
 	}
 
 	g.running = true
 	g.status = GameLoopStats_Running
 
-	g.wg.Add(1)
-
 	// --- begin infinite loop
-	renderLoop(screenResolution, title, g.doRender, g.wg, g.sigKill)
-	// --- stop infinite loop, maybe sigkill or something else
-
+	g.wg.Add(1)
+	fmt.Println("render: wg++")
+	renderLoop(window, g.doRender, g.sigKill)
+	g.wg.Done()
+	fmt.Println("render: wg--")
+	// --- infinite loop has stopped, maybe sigkill or something else
 }
 
 // Kill terminates all sub workers.
@@ -142,7 +145,7 @@ func (g *MasterLoop) Kill() {
 		fmt.Println("emit kill")
 		worker.sigKill <- struct{}{}
 	}
-	g.sigKill <- struct{}{} // kill openGL routine
+	g.sigKill <- struct{}{} // kill openGL routine (main routine) (may panic if the channel has been closed)
 	g.running = false
 }
 
@@ -182,7 +185,6 @@ func (m *MasterLoop) newSubGameLoopController(sg []*cc.SynergyGate, name string)
 
 func (g *subLoop) runSubWorker() {
 	g.startTime = time.Now()
-	coreController.wg.Add(1)
 	fmt.Println("sub: wg ++")
 	for coreController.running {
 		select {

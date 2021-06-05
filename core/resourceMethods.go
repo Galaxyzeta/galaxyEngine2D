@@ -130,7 +130,7 @@ func IsSetInputBuffer(actionType keys.Action, key keys.Key) bool {
 // Only provided buffer field will be erased.
 var autoResetStatusList []int = []int{keys.Action_KeyPress, keys.Action_KeyRelease}
 
-// flushInputBuffer resets input buffer to zero status except for the keyboard held status.
+// FlushInputBuffer resets input buffer to zero status except for the keyboard held status.
 // That status will be automatically cancelled when a KeyRelease callback is hit.
 func FlushInputBuffer() {
 	for _, actionName := range autoResetStatusList {
@@ -139,4 +139,9 @@ func FlushInputBuffer() {
 			delete(bufferField, k)
 		}
 	}
+}
+
+// GetCwd gets current working directory.
+func GetCwd() string {
+	return cwd
 }

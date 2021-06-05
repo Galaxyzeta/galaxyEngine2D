@@ -7,6 +7,7 @@ package objs
 import (
 	"fmt"
 	"galaxyzeta.io/engine/core"
+	"galaxyzeta.io/engine/graphics"
 	"galaxyzeta.io/engine/input"
 	keys "galaxyzeta.io/engine/input/keys"
 	"galaxyzeta.io/engine/sdk"
@@ -31,7 +32,7 @@ func TestImplementedGameObject2D_OnCreate() core.IGameObject2D {
 		RegisterRender(__TestImplementedGameObject2D_OnRender).
 		RegisterStep(__TestImplementedGameObject2D_OnStep).
 		RegisterDestroy(__TestImplementedGameObject2D_OnDestroy)
-	//gameObject2D.Sprite = graphics.NewSprite("./examples/static/Mudkip.png", false, 0, 0)
+	gameObject2D.Sprite = graphics.NewSprite(fmt.Sprintf("%s/examples/testproj/static/Mudkip.png", core.GetCwd()), false, 0, 0)
 	return &TestInputDetection{
 		GameObject2D:           gameObject2D,
 		counter:                0,
