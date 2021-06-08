@@ -5,81 +5,128 @@
 - 多协程核心循环高效执行你的每一物理帧更新。
 - 基于生命周期体系构建你的游戏，逻辑简单清晰。
 
+
 设计文档：devlog.md
 
 ## How 2 Use
 
 一个简单的演示：
 
+下载项目，我内置了一个测试案例，直接运行 Main 即可：
+
 ```go
-package core
+func GameEngineTest() {
+	sdk.StartApplication(&core.AppConfig{
+		Resolution:  &linalg.Vector2f32{X: 640, Y: 320},  // 窗口大小 
+		PhysicalFps: 60,	// 渲染更新频率
+		RenderFps:   60,	// 物理更新频率
+		WorkerCount: 1,		// 工作协程数，如果不出现掉帧，开 1 即可。
+		Title:       "Test Window",
+		InitFunc: func() {  // 初始化函数
+			sdk.Create(objs.TestImplementedGameObject2D_OnCreate)
+		},
+	})
+}
+```
+
+下面是对游戏对象的定义：
+
+```go
+/*
+All user defined 2D objects should be put here.
+*/
+
+package objs
 
 import (
 	"fmt"
-	"testing"
-	"time"
+	"galaxyzeta.io/engine/core"
+	"galaxyzeta.io/engine/graphics"
+	"galaxyzeta.io/engine/input"
+	keys "galaxyzeta.io/engine/input/keys"
+	"galaxyzeta.io/engine/sdk"
 )
 
-//一个测试用的游戏对象。
-type TestImplementedGameObject2D struct {
-	*GameObject2D	// 必须包含一个通用游戏对象父物体。
-	counter  int
-	counter2 int
+// 测试用游戏对象结构体，必须包含 GameObject2D。
+type TestInputDetection struct {
+	*core.GameObject2D
+	counter                int
+	counter2               int
+	keyboardCounter        int
+	keyboardNotHeldCounter int
+	status                 int
+	statusCounter          int
 }
 
-//构造函数，调用Create后立即执行，物体将会在下一帧更新开始前被加入游戏。
-//注意：回调函数不能直接调用，否则无法实现资源管理，必须调写好的 SDK 才能发挥效果。
-func OnCreate() IGameObject2D {
-	gameObject2D := NewGameObject2D().
-		RegisterRender(OnStep).
-		RegisterStep(OnRender).
-		RegisterDestroy(OnDestroy)
-	return &TestImplementedGameObject2D{
-		GameObject2D: gameObject2D,
-		counter:      0,
-		counter2:     0,
+//构造函数，当调用sdk.Create的时候，框架自动帮我们生成一个有生命周期的对象。
+func TestImplementedGameObject2D_OnCreate() core.IGameObject2D {
+	fmt.Println("SDK Call onCreate")
+	gameObject2D := core.NewGameObject2D().
+		RegisterRender(__TestImplementedGameObject2D_OnRender).
+		RegisterStep(__TestImplementedGameObject2D_OnStep).
+		RegisterDestroy(__TestImplementedGameObject2D_OnDestroy)
+	gameObject2D.Sprite = graphics.NewSprite(fmt.Sprintf("%s/examples/testproj/static/Mudkip.png", core.GetCwd()), false, 0, 0)
+	return &TestInputDetection{
+		GameObject2D:           gameObject2D,
+		counter:                0,
+		counter2:               0,
+		keyboardCounter:        0,
+		status:                 0,
+		statusCounter:          0,
+		keyboardNotHeldCounter: 0,
 	}
 }
 
-//更新函数，引擎以物理FPS为频率执行这个函数。
-func OnStep(obj IGameObject2D) {
-	this := obj.(*TestImplementedGameObject2D)
+//更新函数，作为测试，这里检测了 W 按键是否被按下。在 360 步之后（FPS=60），销毁这个游戏对象。
+func __TestImplementedGameObject2D_OnStep(obj core.IGameObject2D) {
+	this := obj.(*TestInputDetection)
 	this.counter2++
-	if this.counter2 == 60 {
-		Destroy(obj)
+	if input.IsKeyPressed(keys.KeyW) {
+		fmt.Println("Key W pressed")
+		this.status = 1
+	}
+	if input.IsKeyReleased(keys.KeyW) {
+		fmt.Println("Key W released")
+		this.status = 0
+	}
+	if input.IsKeyHeld(keys.KeyW) {
+		this.keyboardCounter++
+	} else {
+		this.keyboardNotHeldCounter++
+	}
+	if this.status == 1 {
+		this.statusCounter++
+	}
+	if this.counter2 == 360 {
+		sdk.Destroy(obj)
 	}
 }
 
-//渲染函数，引擎以渲染FPS为频率执行这个函数。
-func OnRender(obj IGameObject2D) {
-	this := obj.(*TestImplementedGameObject2D)
+// 渲染函数。目前版本这里它还不会被调用，TODO。
+func __TestImplementedGameObject2D_OnRender(obj core.IGameObject2D) {
+	this := obj.(*TestInputDetection)
 	this.counter++
-	fmt.Println("Trigger render")
+	if this.counter == 60 {
+		this.counter = 0
+		fmt.Println("Trigger render")
+	}
 }
 
-//析构函数，在OnStep中调用Destroy后立即执行，游戏物体将在本次物理更新结束前被移出游戏。
-func OnDestroy(obj IGameObject2D) {
-	this := obj.(*TestImplementedGameObject2D)
-	fmt.Println("onDestory")
-	fmt.Println(this.counter2)
+// 析构函数。当游戏对象即将被销毁时，将会执行此函数。
+func __TestImplementedGameObject2D_OnDestroy(obj core.IGameObject2D) {
+	this := obj.(*TestInputDetection)
+	fmt.Println("SDK Call onDestroy cb")
+	fmt.Println("Counter:", this.counter2)
+	fmt.Println("KbdCounter:", this.keyboardCounter)
+	fmt.Println("KbdNotHeldCounter", this.keyboardNotHeldCounter)
+	fmt.Println("StatusCounter", this.statusCounter)
+
+	sdk.Exit()
 }
 
-// 必须实现一个获取该物体 GameObject2D 的方法，以便引擎调用。
-func (t TestImplementedGameObject2D) GetGameObject2D() *GameObject2D {
+// 必须实现此方法，该游戏对象才能被框架使用。
+func (t TestInputDetection) GetGameObject2D() *core.GameObject2D {
 	return t.GameObject2D
-}
-
-// 以下内容可以写在 main 函数中。
-func TestGameEngine(t *testing.T) {
-	ctrl := NewMasterLoop(60, 60, 4)	// 创建核心循环，物理FPS和渲染FPS=60，4个子协程执行更新操作。
-	Create(OnCreate)	// 发出物体创建请求。
-	ctrl.RunNoBlocking()	// 开始执行核心循环。
-	go func() {
-		time.Sleep(time.Second * 3)
-		ctrl.Kill()		// 3 秒后杀死核心循环。
-	}()
-	ctrl.Wait()	// 等待核心循环结束。
-	fmt.Println("Abort")
 }
 
 ```
