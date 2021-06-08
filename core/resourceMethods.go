@@ -1,9 +1,9 @@
 package core
 
 import (
-	"galaxyzeta.io/engine/input/keys"
-	"galaxyzeta.io/engine/linalg"
 	"sync"
+
+	"galaxyzeta.io/engine/input/keys"
 )
 
 func addObjDefault(obj IGameObject2D, isActive bool) {
@@ -44,18 +44,6 @@ func ContainsInactiveDefault(obj IGameObject2D) bool {
 // GetCoreController retrieves the central game loop controller for you.
 func GetCoreController() *MasterLoop {
 	return coreController
-}
-
-func GetScreenResolution() linalg.Vector2i {
-	mutexList[Mutex_ScreenResolution].RLock()
-	defer mutexList[Mutex_ScreenResolution].RUnlock()
-	return *screenResolution
-}
-
-func SetScreenResolution(vec2i *linalg.Vector2i) {
-	mutexList[Mutex_ScreenResolution].Lock()
-	defer mutexList[Mutex_ScreenResolution].Unlock()
-	screenResolution = vec2i
 }
 
 func GetTitle() string {
@@ -135,7 +123,7 @@ var autoResetStatusList []int = []int{keys.Action_KeyPress, keys.Action_KeyRelea
 func FlushInputBuffer() {
 	for _, actionName := range autoResetStatusList {
 		bufferField := inputBuffer[actionName]
-		for k, _ := range bufferField {
+		for k := range bufferField {
 			delete(bufferField, k)
 		}
 	}

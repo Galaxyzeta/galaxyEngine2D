@@ -3,7 +3,6 @@ package core
 import (
 	"galaxyzeta.io/engine/graphics"
 	"galaxyzeta.io/engine/input/keys"
-	"galaxyzeta.io/engine/linalg"
 	"sync"
 )
 
@@ -17,7 +16,6 @@ type resourceAccessRequest struct {
 	isActive *bool
 }
 type objPool map[IGameObject2D]struct{}
-type renderablePool map[graphics.RenderContext]struct{}
 type label string
 
 // +------------------------+
@@ -33,8 +31,8 @@ const Label_Default = "default"
 var activePool map[label]objPool
 var inactivePool map[label]objPool
 var labelPool map[label]struct{}
-var renderPool []renderablePool
-var sceneMap map[string]*scene
+var sceneMap map[string]*Scene
+var cameraPool []*graphics.Camera
 
 // +------------------------+
 // |	     Mutex 		 	|
@@ -82,7 +80,7 @@ const (
 // +------------------------+
 
 var currentSceneName string
-var screenResolution *linalg.Vector2i
+var currentActiveCameraIndex int = 0
 var title string
 var inputBuffer []map[keys.Key]struct{}
 var coreController *MasterLoop

@@ -1,10 +1,13 @@
 package core
 
 import (
-	"galaxyzeta.io/engine/input/keys"
 	"os"
 	"runtime"
 	"sync"
+
+	"galaxyzeta.io/engine/graphics"
+	"galaxyzeta.io/engine/input/keys"
+	"galaxyzeta.io/engine/linalg"
 )
 
 func GlobalInitializer() {
@@ -31,8 +34,21 @@ func GlobalInitializer() {
 		casList[idx] = Cas_False
 	}
 
+	// init camera list
+	cameraPool = make([]*graphics.Camera, 1, 4)
+	cameraPool[0] = &graphics.Camera{
+		Pos: linalg.Point2f32{
+			X: 0,
+			Y: 0,
+		},
+		Resolution: linalg.Vector2f32{
+			X: 640,
+			Y: 480,
+		},
+	}
+
 	// init global stuff
-	sceneMap = make(map[string]*scene)
+	sceneMap = make(map[string]*Scene)
 	currentSceneName = ""
 	inputBuffer = make([]map[keys.Key]struct{}, 3)
 	inputBuffer[KeyPress] = map[keys.Key]struct{}{}

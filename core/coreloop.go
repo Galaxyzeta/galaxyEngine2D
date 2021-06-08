@@ -6,6 +6,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"galaxyzeta.io/engine/graphics"
+
 	"galaxyzeta.io/engine/infra"
 	cc "galaxyzeta.io/engine/infra/concurrency"
 	"galaxyzeta.io/engine/linalg"
@@ -28,7 +30,7 @@ var roundRobin = 0
 
 // AppConfig stores all user defined configs.
 type AppConfig struct {
-	Resolution  *linalg.Vector2i
+	Resolution  *linalg.Vector2f32
 	PhysicalFps int
 	RenderFps   int
 	WorkerCount int
@@ -90,7 +92,7 @@ func NewMasterLoop(cfg *AppConfig) *MasterLoop {
 	}
 
 	mutexList[Mutex_ScreenResolution].Lock()
-	screenResolution = cfg.Resolution
+	graphics.SetScreenResolution(cfg.Resolution.X, cfg.Resolution.Y)
 	mutexList[Mutex_ScreenResolution].Unlock()
 
 	sg := make([]*cc.SynergyGate, 0, 3)
@@ -118,7 +120,7 @@ func (g *MasterLoop) RunNoBlocking() {
 		panic("cannot run a controller twice")
 	}
 
-	window := initOpenGL(screenResolution, title)
+	window := InitOpenGL(graphics.GetScreenResolution(), title)
 	g.initFunc()
 
 	for _, worker := range g.workers {
@@ -132,7 +134,7 @@ func (g *MasterLoop) RunNoBlocking() {
 	// --- begin infinite loop
 	g.wg.Add(1)
 	fmt.Println("render: wg++")
-	renderLoop(window, g.doRender, g.sigKill)
+	RenderLoop(window, g.doRender, g.sigKill)
 	g.wg.Done()
 	fmt.Println("render: wg--")
 	// --- infinite loop has stopped, maybe sigkill or something else
@@ -214,7 +216,7 @@ func (g *MasterLoop) doRender() {
 		for gameObj := range pool {
 			obj2d := gameObj.GetGameObject2D()
 			if obj2d.IsVisible && obj2d.Sprite != nil {
-				obj2d.Sprite.Render(obj2d.currentStats.Position.X, obj2d.currentStats.Position.Y)
+				obj2d.Sprite.Render(cameraPool[0], linalg.Point2f32{X: obj2d.currentStats.Position.X, Y: obj2d.currentStats.Position.Y})
 			}
 		}
 	}

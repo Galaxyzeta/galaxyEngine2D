@@ -1,6 +1,8 @@
 package input
 
-import "galaxyzeta.io/engine/core"
+import (
+	"galaxyzeta.io/engine/core"
+)
 import "galaxyzeta.io/engine/input/keys"
 
 func IsKeyPressed(k keys.Key) (b bool) {

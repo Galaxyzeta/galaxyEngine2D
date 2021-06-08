@@ -5,10 +5,10 @@ type IShape interface {
 }
 
 type Rectangle struct {
-	width  float64
-	height float64
-	left   float64
-	top    float64
+	Width  float64
+	Height float64
+	Left   float64
+	Top    float64
 }
 
 func (rect *Rectangle) Intersect(shape IShape) bool {
@@ -20,9 +20,9 @@ func (rect *Rectangle) Intersect(shape IShape) bool {
 }
 
 func (rect *Rectangle) IntersectWithRectangle(anotherRect *Rectangle) bool {
-	anotherRight := anotherRect.left + anotherRect.width
-	anotherBottom := anotherRect.top + anotherRect.height
-	thisRight := rect.left + rect.width
-	thisBottom := rect.top + rect.height
-	return thisRight >= anotherRect.left && rect.left <= anotherRight && rect.top >= anotherBottom && thisBottom <= anotherRect.top
+	anotherRight := anotherRect.Left + anotherRect.Width
+	anotherBottom := anotherRect.Top + anotherRect.Height
+	thisRight := rect.Left + rect.Width
+	thisBottom := rect.Top + rect.Height
+	return thisRight >= anotherRect.Left && rect.Left <= anotherRight && rect.Top >= anotherBottom && thisBottom <= anotherRect.Top
 }

@@ -11,9 +11,9 @@ func init() {
 	core.GlobalInitializer()
 }
 
-func TstGameEngine() {
+func GameEngineTest() {
 	sdk.StartApplication(&core.AppConfig{
-		Resolution:  &linalg.Vector2i{X: 640, Y: 320},
+		Resolution:  &linalg.Vector2f32{X: 640, Y: 320},
 		PhysicalFps: 60,
 		RenderFps:   60,
 		WorkerCount: 4,

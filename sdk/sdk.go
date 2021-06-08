@@ -2,6 +2,7 @@ package sdk
 
 import (
 	"galaxyzeta.io/engine/core"
+	"galaxyzeta.io/engine/graphics"
 	"galaxyzeta.io/engine/linalg"
 )
 
@@ -16,8 +17,8 @@ func StartApplication(cfg *core.AppConfig) {
 }
 
 // ScreenResolution get current screen's resolution. It is thread-safe.
-func ScreenResolution() linalg.Vector2i {
-	return core.GetScreenResolution()
+func ScreenResolution() linalg.Vector2f32 {
+	return graphics.GetScreenResolution()
 }
 
 // Exit will quit the whole program.

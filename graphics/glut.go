@@ -2,12 +2,13 @@ package graphics
 
 import (
 	"fmt"
-	"galaxyzeta.io/engine/infra/file"
-	"galaxyzeta.io/engine/linalg"
-	"github.com/go-gl/gl/v4.1-core/gl"
 	"image"
 	"image/draw"
 	"strings"
+
+	"galaxyzeta.io/engine/infra/file"
+	"galaxyzeta.io/engine/linalg"
+	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
 // Shader is a representation of Shader / vao descriptor.
@@ -62,7 +63,7 @@ func GLBindData(vbo uint32, data interface{}, dataSize int, bindingMode uint32) 
 // GLMustPrepareShaderProgram reads content from vert and frag file, compiles Shader,
 // creates Shader program and then link them up. Returns Shader program descriptor and err.
 func GLMustPrepareShaderProgram(vert string, frag string) uint32 {
-
+	fmt.Printf("[System] file = %s %s\n", vert, frag)
 	vertexShaderSource, err := file.OpenAndRead(vert)
 	if err != nil {
 		panic(err)
@@ -171,10 +172,10 @@ func GLRenderSprite(x float64, y float64, sprite *Sprite) {
 func GLRenderRectangle(vbo uint32, rect Rectangle, rgba linalg.Rgba) {
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
 	vertices := []float64{
-		rect.left, rect.top, 0,
-		rect.left + rect.width, rect.top, 0,
-		rect.left + rect.width, rect.top + rect.height, 0,
-		rect.left, rect.top + rect.height, 0,
+		rect.Left, rect.Top, 0,
+		rect.Left + rect.Width, rect.Top, 0,
+		rect.Left + rect.Width, rect.Top + rect.Height, 0,
+		rect.Left, rect.Top + rect.Height, 0,
 	}
 	gl.BufferData(gl.ARRAY_BUFFER, 4, gl.Ptr(vertices), gl.DYNAMIC_DRAW)
 	gl.DrawArrays(gl.QUADS, 0, 4*2)

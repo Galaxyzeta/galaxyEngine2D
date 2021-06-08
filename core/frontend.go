@@ -2,12 +2,13 @@ package core
 
 import (
 	"fmt"
+	"runtime"
+
 	"galaxyzeta.io/engine/graphics"
 	"galaxyzeta.io/engine/input/keys"
 	"galaxyzeta.io/engine/linalg"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
-	"runtime"
 )
 
 func init() {
@@ -32,8 +33,8 @@ func keyboardCb(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, 
 	}
 }
 
-// initOpenGL will be called at the very beginning of the whole program.
-func initOpenGL(resolution *linalg.Vector2i, title string) *glfw.Window {
+// InitOpenGL will be called at the very beginning of the whole program.
+func InitOpenGL(resolution linalg.Vector2f32, title string) *glfw.Window {
 	// glfw init
 	err := glfw.Init()
 	if err != nil {
@@ -41,7 +42,7 @@ func initOpenGL(resolution *linalg.Vector2i, title string) *glfw.Window {
 	}
 
 	// window creation
-	window, err := glfw.CreateWindow(resolution.X, resolution.Y, title, nil, nil)
+	window, err := glfw.CreateWindow(int(resolution.X), int(resolution.Y), title, nil, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -85,7 +86,7 @@ func installShaders() {
 	graphics.GLNewShader("noshader", 0, graphics.GLNewVAO(1), nil)
 }
 
-func renderLoop(window *glfw.Window, renderFunc func(), sigKill <-chan struct{}) {
+func RenderLoop(window *glfw.Window, renderFunc func(), sigKill <-chan struct{}) {
 
 	fmt.Println("[System] renderLoop entered")
 

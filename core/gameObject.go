@@ -8,7 +8,7 @@ import (
 )
 
 type GameObject2DProperties struct {
-	Position linalg.Point2f
+	Position linalg.Point2f32
 }
 
 type GameObjectFunctions struct {
