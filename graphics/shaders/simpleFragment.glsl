@@ -5,7 +5,6 @@ in vec2 fragTexCoord;
 
 out vec4 FragColor;
 
-void main()
-{
+void main() {
     FragColor = texture(tex, fragTexCoord);
 }

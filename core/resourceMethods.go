@@ -3,6 +3,7 @@ package core
 import (
 	"sync"
 
+	"galaxyzeta.io/engine/graphics"
 	"galaxyzeta.io/engine/input/keys"
 )
 
@@ -84,6 +85,10 @@ func mapActionType2Mutex(actionType keys.Action) MutexIndex {
 		return Mutex_Keyboard_Released
 	}
 	panic("unknown mapping")
+}
+
+func GetCamera(index int) *graphics.Camera {
+	return cameraPool[index]
 }
 
 // SetInputBuffer sets action and key binding to inputBuffer.

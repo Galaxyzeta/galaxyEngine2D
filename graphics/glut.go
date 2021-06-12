@@ -120,8 +120,7 @@ func GLNewVAO(size int32) uint32 {
 	return vao
 }
 
-// GLSpriteRegister
-func GLSpriteRegister(img image.Image, spr *Sprite) {
+func GLRegisterTexture(img image.Image, slot *uint32) {
 
 	rgba := image.NewRGBA(img.Bounds())
 	if rgba.Stride != rgba.Rect.Size().X*4 {
@@ -130,9 +129,9 @@ func GLSpriteRegister(img image.Image, spr *Sprite) {
 	draw.Draw(rgba, rgba.Bounds(), img, image.Point{0, 0}, draw.Src)
 
 	// opengl generate texture
-	gl.GenTextures(1, &spr.glTexture)
+	gl.GenTextures(1, slot)
 	gl.ActiveTexture(gl.TEXTURE0)
-	gl.BindTexture(gl.TEXTURE_2D, spr.glTexture)
+	gl.BindTexture(gl.TEXTURE_2D, *slot)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
@@ -148,25 +147,6 @@ func GLSpriteRegister(img image.Image, spr *Sprite) {
 		gl.UNSIGNED_BYTE,
 		gl.Ptr(rgba.Pix))
 	gl.BindTexture(gl.TEXTURE_2D, 0)
-}
-
-func GLRenderSprite(x float64, y float64, sprite *Sprite) {
-	var buffer uint32
-	bounds := sprite.GetImg().Bounds()
-	dx := float64(bounds.Dx())
-	dy := float64(bounds.Dy())
-	vertices := []float64{
-		x, y,
-		x + dx, y,
-		x + dx, y + dy,
-		x, y + dy,
-	}
-
-	gl.GenBuffers(1, &buffer)
-	gl.BindBuffer(gl.ARRAY_BUFFER, buffer)
-	gl.BufferData(gl.ARRAY_BUFFER, 4, gl.Ptr(vertices), gl.STATIC_DRAW)
-
-	gl.DrawArrays(gl.QUADS, 0, 4*2)
 }
 
 func GLRenderRectangle(vbo uint32, rect Rectangle, rgba linalg.Rgba) {

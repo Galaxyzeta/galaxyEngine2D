@@ -1,9 +1,10 @@
 package core
 
 import (
+	"sync"
+
 	"galaxyzeta.io/engine/graphics"
 	"galaxyzeta.io/engine/input/keys"
-	"sync"
 )
 
 // +------------------------+

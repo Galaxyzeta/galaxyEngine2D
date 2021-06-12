@@ -6,10 +6,12 @@ package objs
 
 import (
 	"fmt"
+	"time"
+
 	"galaxyzeta.io/engine/core"
 	"galaxyzeta.io/engine/graphics"
 	"galaxyzeta.io/engine/input"
-	keys "galaxyzeta.io/engine/input/keys"
+	"galaxyzeta.io/engine/input/keys"
 	"galaxyzeta.io/engine/sdk"
 )
 
@@ -17,12 +19,6 @@ import (
 // It illustrates how to use Galaxy2DEngine.
 type TestInputDetection struct {
 	*core.GameObject2D
-	counter                int
-	counter2               int
-	keyboardCounter        int
-	keyboardNotHeldCounter int
-	status                 int
-	statusCounter          int
 }
 
 //TestImplementedGameObject2D_OnCreate is a public constructor.
@@ -32,15 +28,12 @@ func TestImplementedGameObject2D_OnCreate() core.IGameObject2D {
 		RegisterRender(__TestImplementedGameObject2D_OnRender).
 		RegisterStep(__TestImplementedGameObject2D_OnStep).
 		RegisterDestroy(__TestImplementedGameObject2D_OnDestroy)
-	gameObject2D.Sprite = graphics.NewSprite(fmt.Sprintf("%s/examples/testproj/static/Mudkip.png", core.GetCwd()), false, 0, 0)
+	gameObject2D.Sprite = graphics.NewSprite(0, 0, time.Millisecond*250,
+		fmt.Sprintf("%s/examples/testproj/static/megaman/megaman-running-01.png", core.GetCwd()),
+		fmt.Sprintf("%s/examples/testproj/static/megaman/megaman-running-02.png", core.GetCwd()),
+		fmt.Sprintf("%s/examples/testproj/static/megaman/megaman-running-03.png", core.GetCwd()))
 	return &TestInputDetection{
-		GameObject2D:           gameObject2D,
-		counter:                0,
-		counter2:               0,
-		keyboardCounter:        0,
-		status:                 0,
-		statusCounter:          0,
-		keyboardNotHeldCounter: 0,
+		GameObject2D: gameObject2D,
 	}
 }
 
@@ -49,44 +42,36 @@ func TestImplementedGameObject2D_OnCreate() core.IGameObject2D {
 // even damaging the whole game logic.
 func __TestImplementedGameObject2D_OnStep(obj core.IGameObject2D) {
 	this := obj.(*TestInputDetection)
-	this.counter2++
-	if input.IsKeyPressed(keys.KeyW) {
-		fmt.Println("Key W pressed")
-		this.status = 1
-	}
-	if input.IsKeyReleased(keys.KeyW) {
-		fmt.Println("Key W released")
-		this.status = 0
-	}
+	isKeyHeld := false
 	if input.IsKeyHeld(keys.KeyW) {
-		this.keyboardCounter++
+		this.CurrentStats.Position.Y -= 1
+		isKeyHeld = true
+	} else if input.IsKeyHeld(keys.KeyS) {
+		this.CurrentStats.Position.Y += 1
+		isKeyHeld = true
+	}
+	if input.IsKeyHeld(keys.KeyA) {
+		this.CurrentStats.Position.X -= 1
+		isKeyHeld = true
+	} else if input.IsKeyHeld(keys.KeyD) {
+		this.CurrentStats.Position.X += 1
+		isKeyHeld = true
+	}
+	if isKeyHeld {
+		this.Sprite.EnableAnimation()
 	} else {
-		this.keyboardNotHeldCounter++
-	}
-	if this.status == 1 {
-		this.statusCounter++
-	}
-	if this.counter2 == 360 {
-		sdk.Destroy(obj)
+		this.Sprite.DisableAnimation()
 	}
 }
 
 func __TestImplementedGameObject2D_OnRender(obj core.IGameObject2D) {
 	this := obj.(*TestInputDetection)
-	this.counter++
-	if this.counter == 60 {
-		this.counter = 0
-		fmt.Println("Trigger render")
-	}
+	this.Sprite.Render(sdk.GetCamera(0), this.CurrentStats.Position)
 }
 
 func __TestImplementedGameObject2D_OnDestroy(obj core.IGameObject2D) {
-	this := obj.(*TestInputDetection)
+	// this := obj.(*TestInputDetection)
 	fmt.Println("SDK Call onDestroy cb")
-	fmt.Println("Counter:", this.counter2)
-	fmt.Println("KbdCounter:", this.keyboardCounter)
-	fmt.Println("KbdNotHeldCounter", this.keyboardNotHeldCounter)
-	fmt.Println("StatusCounter", this.statusCounter)
 
 	sdk.Exit()
 }

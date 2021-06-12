@@ -24,7 +24,7 @@ type IGameObject2D interface {
 
 type GameObject2D struct {
 	prevStats    GameObject2DProperties
-	currentStats GameObject2DProperties
+	CurrentStats GameObject2DProperties
 	processor    *subLoop // on which subloop is this gameObject2D being processed.
 	Hitbox       graphics.IShape
 	Sprite       *graphics.Sprite
@@ -46,7 +46,7 @@ func doCreate(constructor func() IGameObject2D, isActive *bool) IGameObject2D {
 	return obj
 }
 
-func DoDestroy(obj IGameObject2D, isActive *bool) {
+func doDestroy(obj IGameObject2D, isActive *bool) {
 	obj2d := obj.GetGameObject2D()
 	if obj2d.Callbacks.OnDestroy != nil {
 		obj2d.Callbacks.OnDestroy(obj)
@@ -61,7 +61,7 @@ func DoDestroy(obj IGameObject2D, isActive *bool) {
 func NewGameObject2D() *GameObject2D {
 	return &GameObject2D{
 		prevStats:    GameObject2DProperties{},
-		currentStats: GameObject2DProperties{},
+		CurrentStats: GameObject2DProperties{},
 		processor:    &subLoop{},
 		Hitbox:       nil,
 		Sprite:       &graphics.Sprite{},
@@ -106,7 +106,7 @@ func CreateInactive(constructor func() IGameObject2D) IGameObject2D {
 // Destroy will deconstruct an active/inactive object immediately.
 // The object will be truely removed from resource pool in the next physical tick.
 func Destroy(obj IGameObject2D) {
-	DoDestroy(obj, nil)
+	doDestroy(obj, nil)
 }
 
 // Activate an object from deactive list, if it exists in it.
@@ -129,4 +129,24 @@ func Deactivate(obj IGameObject2D) bool {
 		return true
 	}
 	return false
+}
+
+// +------------------------+
+// |	Common Properties	|
+// +------------------------+
+
+func (obj2d *GameObject2D) GetX() float32 {
+	return obj2d.prevStats.Position.X
+}
+
+func (obj2d *GameObject2D) SetX(x float32) {
+	obj2d.CurrentStats.Position.X = x
+}
+
+func (obj2d *GameObject2D) GetY() float32 {
+	return obj2d.prevStats.Position.Y
+}
+
+func (obj2d *GameObject2D) SetY(y float32) {
+	obj2d.CurrentStats.Position.Y = y
 }

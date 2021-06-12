@@ -67,3 +67,7 @@ func Activate(iobj core.IGameObject2D) bool {
 func Deactivate(iobj core.IGameObject2D) bool {
 	return core.Deactivate(iobj)
 }
+
+func GetCamera(idx int) *graphics.Camera {
+	return core.GetCamera(idx)
+}

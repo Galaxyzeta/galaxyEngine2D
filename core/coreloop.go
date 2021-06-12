@@ -59,15 +59,15 @@ type MasterLoop struct {
 
 // subLoop will handle step updates.
 type subLoop struct {
-	name                   string
-	startTime              time.Time
-	physicalTicker         *time.Ticker               // Physical update ticker.
-	registerChannel        chan resourceAccessRequest // A pipeline used to register gameObjects to the pool. When calling Create from SDK, load balancing is applied to distribute a create request to this channel.
-	unregisterChannel      chan resourceAccessRequest // A pipeline used to unregister gameObjects to the pool When calling Destroy from SDK, load balancing is applied to distribute a destroy request to this channel.
-	processingPool         map[IGameObject2D]struct{} // A list that will be re-populate with step jobs to process before each step starts.
-	sigKill                chan struct{}              // A channel used for receiving kill signal.
-	synergyGates           []*cc.SynergyGate          // A set of barriers that makes goroutines wait for each other to reach a common execution entry to continue.
-	shouldResetInputBuffer bool                       // Mark whether this subLoop is responsible for resetting inputBuffer.
+	name              string
+	startTime         time.Time
+	physicalTicker    *time.Ticker               // Physical update ticker.
+	registerChannel   chan resourceAccessRequest // A pipeline used to register gameObjects to the pool. When calling Create from SDK, load balancing is applied to distribute a create request to this channel.
+	unregisterChannel chan resourceAccessRequest // A pipeline used to unregister gameObjects to the pool When calling Destroy from SDK, load balancing is applied to distribute a destroy request to this channel.
+	processingPool    map[IGameObject2D]struct{} // A list that will be re-populate with step jobs to process before each step starts.
+	sigKill           chan struct{}              // A channel used for receiving kill signal.
+	synergyGates      []*cc.SynergyGate          // A set of barriers that makes goroutines wait for each other to reach a common execution entry to continue.
+	isLeader          bool                       // Mark whether this subLoop handles some once-a-frame actions
 }
 
 // NewMasterLoop returns a new masterGameLoopController. SubworkersCount is ensured to have at least 1.
@@ -104,7 +104,7 @@ func NewMasterLoop(cfg *AppConfig) *MasterLoop {
 		sub := main.newSubGameLoopController(sg, fmt.Sprintf("%d", i))
 		main.workers = append(main.workers, sub)
 	}
-	main.workers[0].shouldResetInputBuffer = true
+	main.workers[0].isLeader = true
 
 	main.status = GameLoopStats_Initialized
 
@@ -213,11 +213,9 @@ func (g *subLoop) subLoopExit() {
 
 func (g *MasterLoop) doRender() {
 	for _, pool := range activePool {
-		for gameObj := range pool {
-			obj2d := gameObj.GetGameObject2D()
-			if obj2d.IsVisible && obj2d.Sprite != nil {
-				obj2d.Sprite.Render(cameraPool[0], linalg.Point2f32{X: obj2d.currentStats.Position.X, Y: obj2d.currentStats.Position.Y})
-			}
+		for iobj2d := range pool {
+			obj2d := iobj2d.GetGameObject2D()
+			obj2d.Callbacks.OnRender(iobj2d)
 		}
 	}
 }
@@ -237,12 +235,20 @@ func (g *subLoop) doPhysicalUpdate() {
 	// 2. do step
 	for iobj2d := range g.processingPool {
 		iobj2d.GetGameObject2D().Callbacks.OnStep(iobj2d)
+		iobj2d.GetGameObject2D().Sprite.DoFrameStep()
 	}
 	g.synergyGates[2].Wait()
 
 	// flush input buffer, only one subLoop can do this.
-	if g.shouldResetInputBuffer {
+	if g.isLeader {
 		FlushInputBuffer()
+
+		// status memorization
+		var obj2d *GameObject2D
+		for iobj2d := range g.processingPool {
+			obj2d = iobj2d.GetGameObject2D()
+			obj2d.prevStats.Position = obj2d.CurrentStats.Position
+		}
 	}
 	// 3. check whether there are items to unregister
 	for len(g.unregisterChannel) > 0 {
