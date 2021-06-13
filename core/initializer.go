@@ -47,6 +47,9 @@ func GlobalInitializer() {
 		},
 	}
 
+	// init render sorting list
+	renderSortList = make([]*GameObject2D, 0, 1024)
+
 	// init global stuff
 	sceneMap = make(map[string]*Scene)
 	currentSceneName = ""

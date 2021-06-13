@@ -8,66 +8,79 @@ import (
 	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
-type Sprite struct {
+type SpriteInstance struct {
 	Animator
+	frames  SpriteMeta
 	OffsetX float64
 	OffsetY float64
 	Z       int
+	vbo     uint32
 }
 
-type GLImg struct {
+// SpriteMeta is a sequence of frames that consists of an playable animation.
+type SpriteMeta []*GLFrame
+
+// GLFrame is a single img included in Sprite object.
+type GLFrame struct {
 	img       image.Image
-	vbo       uint32
 	glTexture uint32
 }
 
 type Animator struct {
-	frames         []*GLImg
 	currentFrame   int
-	frameLen       int
 	updateInterval time.Duration
 	lastUpdateTime time.Time
 	isPlaying      bool
 }
 
-func (spr *Sprite) GetImg() image.Image {
+func (spr *SpriteInstance) GetImg() image.Image {
 	return spr.frames[spr.currentFrame].img
 }
 
-// NewSprite creates a new sprite.
-func NewSprite(OffsetX float64, OffsetY float64, updateInterval time.Duration, frameFiles ...string) (spr *Sprite) {
+// NewFrame returns a new single frame.
+func NewFrame(name string, frameFile string) *GLFrame {
 	var img image.Image = nil
 	var err error
 	// load img
-	glImgFrames := make([]*GLImg, len(frameFiles))
-	for idx, frame := range frameFiles {
-		img, err = ReadPng(frame)
-		if err != nil {
-			panic(err)
-		}
-		glImgFrames[idx] = &GLImg{
-			img: img,
-			vbo: GLNewVBO(1),
-		}
-		GLRegisterTexture(img, &glImgFrames[idx].glTexture)
+	img, err = ReadPng(frameFile)
+	if err != nil {
+		panic(err)
 	}
+	ret := &GLFrame{
+		img: img,
+	}
+	GLRegisterTexture(img, &ret.glTexture)
+	// save to graphic hashmap
+	frameMap[name] = ret
+	return ret
+}
 
-	return &Sprite{
-		OffsetX: OffsetX,
-		OffsetY: OffsetY,
+// NewSpriteMeta creates a new sprite meta from given sprite names.
+func NewSpriteMeta(name string, frameNames ...string) {
+	ret := make(SpriteMeta, len(frameNames))
+	for idx := range ret {
+		ret[idx] = GetFrame(frameNames[idx])
+	}
+	spriteMetaMap[name] = ret
+}
+
+// NewSpriteInstance creates a new sprite.
+func NewSpriteInstance(sprMetaName string) (spr *SpriteInstance) {
+	ret := &SpriteInstance{
+		vbo:    GLNewVBO(1),
+		frames: GetSpriteMeta(sprMetaName),
 		Animator: Animator{
-			frames:         glImgFrames,
 			currentFrame:   0,
-			frameLen:       len(glImgFrames),
-			updateInterval: updateInterval,
+			updateInterval: time.Millisecond * 200,
 			lastUpdateTime: time.Now(),
 			isPlaying:      true,
 		},
 	}
+	return ret
 }
 
 // Render sprite. Sprite must exist.
-func (spr *Sprite) Render(camera *Camera, pos linalg.Point2f32) {
+func (spr *SpriteInstance) Render(camera *Camera, pos linalg.Point2f32) {
 	currentGLImg := spr.frames[spr.currentFrame]
 	dx := float32(currentGLImg.img.Bounds().Dx())
 	dy := float32(currentGLImg.img.Bounds().Dy())
@@ -87,19 +100,18 @@ func (spr *Sprite) Render(camera *Camera, pos linalg.Point2f32) {
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 	GLActivateTexture(currentGLImg.glTexture)
-	GLBindData(currentGLImg.vbo, vertices, len(vertices)*4, gl.DYNAMIC_DRAW)
+	GLBindData(spr.vbo, vertices, len(vertices)*4, gl.DYNAMIC_DRAW)
 	GLActivateShader("default")
-
 	gl.DrawArrays(gl.QUADS, 0, 4)
 	gl.Disable(gl.BLEND)
 
 }
 
-func (spr *Sprite) DoFrameStep() {
+func (spr *SpriteInstance) DoFrameStep() {
 	if spr.isPlaying {
 		if time.Since(spr.lastUpdateTime) >= spr.updateInterval {
 			spr.currentFrame += 1
-			if spr.currentFrame >= spr.frameLen {
+			if spr.currentFrame >= len(spr.frames) {
 				spr.currentFrame = 0
 			}
 			spr.lastUpdateTime = time.Now()
@@ -107,23 +119,21 @@ func (spr *Sprite) DoFrameStep() {
 	}
 }
 
-func (spr *Sprite) SetUpdateInterval(dur time.Duration) {
+func (spr *SpriteInstance) SetUpdateInterval(dur time.Duration) *SpriteInstance {
 	spr.updateInterval = dur
+	return spr
 }
 
-func (spr *Sprite) EnableAnimation() {
+func (spr *SpriteInstance) EnableAnimation() *SpriteInstance {
 	spr.isPlaying = true
+	return spr
 }
 
-func (spr *Sprite) DisableAnimation() {
+func (spr *SpriteInstance) DisableAnimation() *SpriteInstance {
 	spr.isPlaying = false
+	return spr
 }
 
-func (spr *Sprite) IsPlaying() bool {
+func (spr *SpriteInstance) IsPlaying() bool {
 	return spr.isPlaying
-}
-
-// Depth gets sprite's z direction depth.
-func (spr *Sprite) Depth() int {
-	return spr.Z
 }

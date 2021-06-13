@@ -17,6 +17,8 @@ func addObjDefault(obj IGameObject2D, isActive bool) {
 	targetPool[Label_Default][obj] = struct{}{}
 }
 
+// ===== Render List =====
+
 func removeObjDefault(obj IGameObject2D, isActive bool) bool {
 	var targetPool map[label]objPool
 	if isActive {

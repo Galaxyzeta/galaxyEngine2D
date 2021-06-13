@@ -2,10 +2,12 @@ package core
 
 import (
 	"fmt"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"galaxyzeta.io/engine/component"
 	"galaxyzeta.io/engine/graphics"
 
 	"galaxyzeta.io/engine/infra"
@@ -45,7 +47,7 @@ type MasterLoop struct {
 	// --- concurrency control
 	workers      []*subLoop
 	workersCount int
-	initFunc     func()
+	initFunc     func()        // InitFunc will be called at the very beginning of the game. Recommend to do some pre-resource loading work here.
 	status       gameLoopStats // Describes the working status of current gameLoopController.
 	// --- timing control
 	physicalFPS  time.Duration // Physical update rate.
@@ -212,11 +214,23 @@ func (g *subLoop) subLoopExit() {
 //____________________________________
 
 func (g *MasterLoop) doRender() {
+
+	renderSortList = renderSortList[:0]
+
+	mutexList[Mutex_ActivePool].RLock()
 	for _, pool := range activePool {
-		for iobj2d := range pool {
-			obj2d := iobj2d.GetGameObject2D()
-			obj2d.Callbacks.OnRender(iobj2d)
+		for elem := range pool {
+			renderSortList = append(renderSortList, elem.GetGameObject2D())
 		}
+	}
+	mutexList[Mutex_ActivePool].RUnlock()
+
+	// sort by z from far to near
+	sort.Slice(renderSortList, func(i, j int) bool {
+		return renderSortList[i].Sprite.Z > renderSortList[j].Sprite.Z
+	})
+	for _, elem := range renderSortList {
+		elem.Callbacks.OnRender(elem.iobj2d)
 	}
 }
 
@@ -242,13 +256,6 @@ func (g *subLoop) doPhysicalUpdate() {
 	// flush input buffer, only one subLoop can do this.
 	if g.isLeader {
 		FlushInputBuffer()
-
-		// status memorization
-		var obj2d *GameObject2D
-		for iobj2d := range g.processingPool {
-			obj2d = iobj2d.GetGameObject2D()
-			obj2d.prevStats.Position = obj2d.CurrentStats.Position
-		}
 	}
 	// 3. check whether there are items to unregister
 	for len(g.unregisterChannel) > 0 {
@@ -256,5 +263,10 @@ func (g *subLoop) doPhysicalUpdate() {
 		fmt.Println("sub: destroy ", g.name)
 		delete(g.processingPool, req.payload)
 		removeObjDefault(req.payload, req.payload.GetGameObject2D().isActive)
+	}
+	// memo
+	for iobj2d := range g.processingPool {
+		tf := iobj2d.GetGameObject2D().GetComponent(component.NameTransform2D).(*component.Transform2D)
+		tf.MemXY()
 	}
 }

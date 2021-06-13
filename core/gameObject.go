@@ -1,13 +1,15 @@
 package core
 
 import (
+	"galaxyzeta.io/engine/component"
 	"galaxyzeta.io/engine/graphics"
 	"galaxyzeta.io/engine/infra"
+	cc "galaxyzeta.io/engine/infra/concurrency"
 	"galaxyzeta.io/engine/input/keys"
 	"galaxyzeta.io/engine/linalg"
 )
 
-type GameObject2DProperties struct {
+type DefaultComponentWrapper struct {
 	Position linalg.Point2f32
 }
 
@@ -23,21 +25,23 @@ type IGameObject2D interface {
 }
 
 type GameObject2D struct {
-	prevStats    GameObject2DProperties
-	CurrentStats GameObject2DProperties
-	processor    *subLoop // on which subloop is this gameObject2D being processed.
-	Hitbox       graphics.IShape
-	Sprite       *graphics.Sprite
-	Callbacks    *GameObjectFunctions
-	inputPool    map[keys.Key]struct{}
-	IsVisible    bool
-	isActive     bool
+	processor  *subLoop // on which subloop is this gameObject2D being processed.
+	Hitbox     graphics.IShape
+	Sprite     *graphics.SpriteInstance
+	Callbacks  *GameObjectFunctions
+	inputPool  map[keys.Key]struct{}
+	mu         cc.SpinLock
+	components map[string]IComponent
+	iobj2d     IGameObject2D
+	IsVisible  bool
+	isActive   bool
 }
 
 // doCreate does actual creation.
 func doCreate(constructor func() IGameObject2D, isActive *bool) IGameObject2D {
 	obj := constructor()
 	processor := coreController.roundRobin()
+	obj.GetGameObject2D().iobj2d = obj
 	obj.GetGameObject2D().processor = processor
 	processor.registerChannel <- resourceAccessRequest{
 		payload:  obj,
@@ -59,17 +63,20 @@ func doDestroy(obj IGameObject2D, isActive *bool) {
 
 // NewGameObject2D creates a new GameObject2D
 func NewGameObject2D() *GameObject2D {
-	return &GameObject2D{
-		prevStats:    GameObject2DProperties{},
-		CurrentStats: GameObject2DProperties{},
-		processor:    &subLoop{},
-		Hitbox:       nil,
-		Sprite:       &graphics.Sprite{},
-		Callbacks:    &GameObjectFunctions{},
-		inputPool:    make(map[keys.Key]struct{}),
-		IsVisible:    true,
-		isActive:     true,
+	ret := &GameObject2D{
+		processor:  &subLoop{},
+		Hitbox:     nil,
+		Sprite:     &graphics.SpriteInstance{},
+		Callbacks:  &GameObjectFunctions{},
+		inputPool:  make(map[keys.Key]struct{}),
+		IsVisible:  true,
+		isActive:   true,
+		mu:         cc.SpinLock{},
+		components: map[string]IComponent{},
 	}
+	// register default component
+	ret.RegisterComponentIfAbsent(component.NewTransform2D())
+	return ret
 }
 
 func (o *GameObject2D) RegisterStep(method func(IGameObject2D)) *GameObject2D {
@@ -85,6 +92,27 @@ func (o *GameObject2D) RegisterRender(method func(IGameObject2D)) *GameObject2D 
 func (o *GameObject2D) RegisterDestroy(method func(IGameObject2D)) *GameObject2D {
 	o.Callbacks.OnDestroy = method
 	return o
+}
+
+func (o *GameObject2D) RegisterComponent(com IComponent) *GameObject2D {
+	o.components[com.GetName()] = com
+	return o
+}
+
+func (o *GameObject2D) RegisterComponentIfAbsent(com IComponent) *GameObject2D {
+	_, ok := o.components[com.GetName()]
+	if !ok {
+		o.RegisterComponent(com)
+	}
+	return o
+}
+
+func (o *GameObject2D) GetComponent(name string) IComponent {
+	ret, ok := o.components[name]
+	if !ok {
+		panic("no such component")
+	}
+	return ret
 }
 
 // +------------------------+
@@ -132,21 +160,13 @@ func Deactivate(obj IGameObject2D) bool {
 }
 
 // +------------------------+
-// |	Common Properties	|
+// |	 Lock Properties	|
 // +------------------------+
 
-func (obj2d *GameObject2D) GetX() float32 {
-	return obj2d.prevStats.Position.X
+func (obj2d *GameObject2D) Lock() {
+	obj2d.mu.Lock()
 }
 
-func (obj2d *GameObject2D) SetX(x float32) {
-	obj2d.CurrentStats.Position.X = x
-}
-
-func (obj2d *GameObject2D) GetY() float32 {
-	return obj2d.prevStats.Position.Y
-}
-
-func (obj2d *GameObject2D) SetY(y float32) {
-	obj2d.CurrentStats.Position.Y = y
+func (obj2d *GameObject2D) Unlock() {
+	obj2d.mu.Unlock()
 }

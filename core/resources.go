@@ -34,6 +34,9 @@ var inactivePool map[label]objPool
 var labelPool map[label]struct{}
 var sceneMap map[string]*Scene
 var cameraPool []*graphics.Camera
+var renderSortList []*GameObject2D
+
+const MaxRenderListSize = 256
 
 // +------------------------+
 // |	     Mutex 		 	|
@@ -48,6 +51,8 @@ const (
 	Mutex_Keyboard_Pressed
 	Mutex_Keyboard_Held
 	Mutex_Keyboard_Released
+	Mutex_ActivePool
+	Mutex_InactivePool
 )
 
 var mutexList []*sync.RWMutex
