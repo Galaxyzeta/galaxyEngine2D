@@ -3,8 +3,8 @@ package tests
 import (
 	"fmt"
 
-	"galaxyzeta.io/engine/component"
 	"galaxyzeta.io/engine/core"
+	"galaxyzeta.io/engine/ecs/component"
 	objs "galaxyzeta.io/engine/examples/testproj/userspace"
 	"galaxyzeta.io/engine/graphics"
 	"galaxyzeta.io/engine/linalg"

@@ -7,8 +7,8 @@ package objs
 import (
 	"fmt"
 
-	"galaxyzeta.io/engine/component"
 	"galaxyzeta.io/engine/core"
+	"galaxyzeta.io/engine/ecs/component"
 	"galaxyzeta.io/engine/graphics"
 	"galaxyzeta.io/engine/infra/constdef"
 	"galaxyzeta.io/engine/linalg"

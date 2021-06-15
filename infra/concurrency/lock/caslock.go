@@ -1,4 +1,4 @@
-package cc
+package lock
 
 import (
 	"sync/atomic"

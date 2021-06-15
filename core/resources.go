@@ -34,7 +34,10 @@ var inactivePool map[label]objPool
 var labelPool map[label]struct{}
 var sceneMap map[string]*Scene
 var cameraPool []*graphics.Camera
-var renderSortList []*GameObject2D
+var renderSortList []*GameObject2D // this array is a stash used for depth base layer sorting.
+
+var systemPriorityList []ISystem // an array of system's excution order sorted by priority from high to low.
+var systemMap map[ISystem]int
 
 const MaxRenderListSize = 256
 

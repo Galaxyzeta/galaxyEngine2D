@@ -8,6 +8,7 @@ import (
 
 	"galaxyzeta.io/engine/infra/file"
 	"galaxyzeta.io/engine/linalg"
+	"galaxyzeta.io/engine/physics"
 	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
@@ -149,7 +150,7 @@ func GLRegisterTexture(img image.Image, slot *uint32) {
 	gl.BindTexture(gl.TEXTURE_2D, 0)
 }
 
-func GLRenderRectangle(vbo uint32, rect Rectangle, rgba linalg.Rgba) {
+func GLRenderRectangle(vbo uint32, rect physics.Rectangle, rgba linalg.Rgba) {
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
 	vertices := []float64{
 		rect.Left, rect.Top, 0,

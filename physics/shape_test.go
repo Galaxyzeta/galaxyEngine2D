@@ -1,4 +1,4 @@
-package graphics_test
+package physics_test
 
 import "testing"
 

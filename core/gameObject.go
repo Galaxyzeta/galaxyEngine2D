@@ -1,12 +1,13 @@
 package core
 
 import (
-	"galaxyzeta.io/engine/component"
+	"galaxyzeta.io/engine/ecs/component"
 	"galaxyzeta.io/engine/graphics"
 	"galaxyzeta.io/engine/infra"
-	cc "galaxyzeta.io/engine/infra/concurrency"
+	"galaxyzeta.io/engine/infra/concurrency/lock"
 	"galaxyzeta.io/engine/input/keys"
 	"galaxyzeta.io/engine/linalg"
+	"galaxyzeta.io/engine/physics"
 )
 
 type DefaultComponentWrapper struct {
@@ -26,11 +27,11 @@ type IGameObject2D interface {
 
 type GameObject2D struct {
 	processor  *subLoop // on which subloop is this gameObject2D being processed.
-	Hitbox     graphics.IShape
+	Hitbox     physics.IShape
 	Sprite     *graphics.SpriteInstance
 	Callbacks  *GameObjectFunctions
 	inputPool  map[keys.Key]struct{}
-	mu         cc.SpinLock
+	mu         lock.SpinLock
 	components map[string]IComponent
 	iobj2d     IGameObject2D
 	IsVisible  bool
@@ -71,7 +72,7 @@ func NewGameObject2D() *GameObject2D {
 		inputPool:  make(map[keys.Key]struct{}),
 		IsVisible:  true,
 		isActive:   true,
-		mu:         cc.SpinLock{},
+		mu:         lock.SpinLock{},
 		components: map[string]IComponent{},
 	}
 	// register default component

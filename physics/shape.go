@@ -1,4 +1,4 @@
-package graphics
+package physics
 
 type IShape interface {
 	Intersect(shape IShape) bool

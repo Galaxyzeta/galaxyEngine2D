@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"galaxyzeta.io/engine/component"
+	"galaxyzeta.io/engine/ecs/component"
 	"galaxyzeta.io/engine/graphics"
 
 	"galaxyzeta.io/engine/infra"
@@ -97,8 +97,8 @@ func NewMasterLoop(cfg *AppConfig) *MasterLoop {
 	graphics.SetScreenResolution(cfg.Resolution.X, cfg.Resolution.Y)
 	mutexList[Mutex_ScreenResolution].Unlock()
 
-	sg := make([]*cc.SynergyGate, 0, 3)
-	for i := 0; i < 3; i++ {
+	sg := make([]*cc.SynergyGate, 0, 4)
+	for i := 0; i < 4; i++ {
 		sg = append(sg, cc.NewSynergyGate(int64(main.workersCount)))
 	}
 
@@ -246,18 +246,27 @@ func (g *subLoop) doPhysicalUpdate() {
 		addObjDefault(req.payload, *req.isActive)
 	}
 	g.synergyGates[1].Wait()
-	// 2. do step
+	// 2. execute system
+	if g.isLeader {
+		for _, sys := range systemPriorityList {
+			if sys.IsEnabled() {
+				sys.Execute()
+			}
+		}
+	}
+	g.synergyGates[2].Wait()
+	// 3. do step
 	for iobj2d := range g.processingPool {
 		iobj2d.GetGameObject2D().Callbacks.OnStep(iobj2d)
 		iobj2d.GetGameObject2D().Sprite.DoFrameStep()
 	}
-	g.synergyGates[2].Wait()
+	g.synergyGates[3].Wait()
 
 	// flush input buffer, only one subLoop can do this.
 	if g.isLeader {
 		FlushInputBuffer()
 	}
-	// 3. check whether there are items to unregister
+	// 4. check whether there are items to unregister
 	for len(g.unregisterChannel) > 0 {
 		req := <-g.unregisterChannel
 		fmt.Println("sub: destroy ", g.name)
