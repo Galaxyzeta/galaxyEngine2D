@@ -3,11 +3,12 @@ package core
 import (
 	"sync"
 
+	"galaxyzeta.io/engine/base"
 	"galaxyzeta.io/engine/graphics"
 	"galaxyzeta.io/engine/input/keys"
 )
 
-func addObjDefault(obj IGameObject2D, isActive bool) {
+func addObjDefault(obj base.IGameObject2D, isActive bool) {
 	var targetPool map[label]objPool
 	if isActive {
 		targetPool = activePool
@@ -19,7 +20,7 @@ func addObjDefault(obj IGameObject2D, isActive bool) {
 
 // ===== Render List =====
 
-func removeObjDefault(obj IGameObject2D, isActive bool) bool {
+func removeObjDefault(obj base.IGameObject2D, isActive bool) bool {
 	var targetPool map[label]objPool
 	if isActive {
 		targetPool = activePool
@@ -34,19 +35,19 @@ func removeObjDefault(obj IGameObject2D, isActive bool) bool {
 	return true
 }
 
-func ContainsActiveDefault(obj IGameObject2D) bool {
+func ContainsActiveDefault(obj base.IGameObject2D) bool {
 	_, ok := activePool[Label_Default][obj]
 	return ok
 }
 
-func ContainsInactiveDefault(obj IGameObject2D) bool {
+func ContainsInactiveDefault(obj base.IGameObject2D) bool {
 	_, ok := inactivePool[Label_Default][obj]
 	return ok
 }
 
 // GetCoreController retrieves the central game loop controller for you.
-func GetCoreController() *MasterLoop {
-	return coreController
+func GetCoreController() *Application {
+	return app
 }
 
 func GetTitle() string {

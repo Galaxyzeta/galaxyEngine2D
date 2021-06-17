@@ -5,6 +5,7 @@ import (
 
 	"galaxyzeta.io/engine/core"
 	"galaxyzeta.io/engine/ecs/component"
+	"galaxyzeta.io/engine/ecs/system"
 	objs "galaxyzeta.io/engine/examples/testproj/userspace"
 	"galaxyzeta.io/engine/graphics"
 	"galaxyzeta.io/engine/linalg"
@@ -20,10 +21,11 @@ func GameEngineTest() {
 		Resolution:  &linalg.Vector2f32{X: 640, Y: 480},
 		PhysicalFps: 60,
 		RenderFps:   60,
-		WorkerCount: 4,
+		Parallelism: 4,
 		Title:       "Test Window",
 		InitFunc: func() {
 			loadResource()
+			core.RegisterSystem(system.NewPhysics2DSystem(0))
 			sdk.Create(objs.TestPlayer_OnCreate)
 			var i float32
 			for i = 0; i < 480/16; i++ {

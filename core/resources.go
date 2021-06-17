@@ -3,7 +3,9 @@ package core
 import (
 	"sync"
 
+	"galaxyzeta.io/engine/base"
 	"galaxyzeta.io/engine/graphics"
+	cc "galaxyzeta.io/engine/infra/concurrency"
 	"galaxyzeta.io/engine/input/keys"
 )
 
@@ -13,10 +15,10 @@ import (
 
 // resourceAccessRequest is sent to a channel for user's object creation / deconstruction request.
 type resourceAccessRequest struct {
-	payload  IGameObject2D
+	payload  base.IGameObject2D
 	isActive *bool
 }
-type objPool map[IGameObject2D]struct{}
+type objPool map[base.IGameObject2D]struct{}
 type label string
 
 // +------------------------+
@@ -34,10 +36,13 @@ var inactivePool map[label]objPool
 var labelPool map[label]struct{}
 var sceneMap map[string]*Scene
 var cameraPool []*graphics.Camera
-var renderSortList []*GameObject2D // this array is a stash used for depth base layer sorting.
+var renderSortList []*base.GameObject2D // this array is a stash used for depth base layer sorting.
 
-var systemPriorityList []ISystem // an array of system's excution order sorted by priority from high to low.
-var systemMap map[ISystem]int
+var routinePool *cc.Executor
+
+var systemPriorityList []base.ISystem = make([]base.ISystem, 0, 256)
+var systemPriorityMap map[base.ISystem]int = make(map[base.ISystem]int)
+var systemNameMap map[string]base.ISystem = make(map[string]base.ISystem)
 
 const MaxRenderListSize = 256
 
@@ -88,9 +93,9 @@ const (
 // |	   Global Var 	 	|
 // +------------------------+
 
-var currentSceneName string
-var currentActiveCameraIndex int = 0
-var title string
-var inputBuffer []map[keys.Key]struct{}
-var coreController *MasterLoop
-var cwd string
+var currentSceneName string             // current active scene.
+var currentActiveCameraIndex int = 0    // current main camera index.
+var title string                        // the name of your window.
+var inputBuffer []map[keys.Key]struct{} // inputBuffer stores input event type, and its corresponding key status.
+var app *Application                    // app is the very core of your whole application.
+var cwd string                          // cwd is a shorthand for current working directory.

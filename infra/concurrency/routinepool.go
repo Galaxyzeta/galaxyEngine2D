@@ -46,6 +46,9 @@ func (e *Executor) jobExecutorRoutine(id int, wg sync.WaitGroup) {
 		p := recover()
 		if p != nil {
 			fmt.Println("[Fatal] jobExecutorRoutine catches a panic: %v", p)
+			if e.isRunning == false {
+				return
+			}
 			go e.jobExecutorRoutine(id, wg)
 		}
 	}()
@@ -63,11 +66,14 @@ func (e *Executor) jobExecutorRoutine(id int, wg sync.WaitGroup) {
 // Shutdown executor pool, waiting for all goroutines to finish.
 func (e *Executor) Shutdown() {
 	e.isRunning = false
+	for _, subChan := range e.jobChannel {
+		close(subChan)
+	}
 	e.wg.Wait()
 }
 
-// Execute a job asynchronously, returns a future object.
-func (e *Executor) Execute(fn func() (interface{}, error)) *Future {
+// AsyncExecute a job asynchronously, returns a future object.
+func (e *Executor) AsyncExecute(fn func() (interface{}, error)) *Future {
 	future := Future{
 		Result: nil,
 		Err:    nil,

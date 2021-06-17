@@ -7,7 +7,7 @@ package objs
 import (
 	"fmt"
 
-	"galaxyzeta.io/engine/core"
+	"galaxyzeta.io/engine/base"
 	"galaxyzeta.io/engine/ecs/component"
 	"galaxyzeta.io/engine/graphics"
 	"galaxyzeta.io/engine/infra/constdef"
@@ -18,17 +18,18 @@ import (
 // TestInputDetection is a golang GameObject2D testing template,
 // It illustrates how to use Galaxy2DEngine.
 type TestBlock struct {
-	*core.GameObject2D
+	*base.GameObject2D
 	tf *component.Transform2D
 }
 
 //TestImplementedGameObject2D_OnCreate is a public constructor.
-func TestBlock_OnCreate() core.IGameObject2D {
+func TestBlock_OnCreate() base.IGameObject2D {
 	fmt.Println("SDK Call onCreate")
-	gameObject2D := core.NewGameObject2D().
+	gameObject2D := base.NewGameObject2D().
 		RegisterRender(__TestBlock_OnRender).
 		RegisterStep(constdef.DefaultGameFunction).
-		RegisterDestroy(constdef.DefaultGameFunction)
+		RegisterDestroy(constdef.DefaultGameFunction).
+		RegisterComponentIfAbsent(component.NewTransform2D())
 	gameObject2D.Sprite = graphics.NewSpriteInstance("spr_block")
 	gameObject2D.Sprite.DisableAnimation()
 	gameObject2D.Sprite.Z = 10
@@ -38,12 +39,12 @@ func TestBlock_OnCreate() core.IGameObject2D {
 	}
 }
 
-func __TestBlock_OnRender(obj core.IGameObject2D) {
+func __TestBlock_OnRender(obj base.IGameObject2D) {
 	this := obj.(*TestBlock)
 	this.Sprite.Render(sdk.GetCamera(0), linalg.Point2f32{X: this.tf.X, Y: this.tf.Y})
 }
 
 // GetGameObject2D implements IGameObject2D.
-func (t TestBlock) GetGameObject2D() *core.GameObject2D {
+func (t TestBlock) GetGameObject2D() *base.GameObject2D {
 	return t.GameObject2D
 }

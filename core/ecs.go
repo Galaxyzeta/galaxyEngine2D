@@ -1,40 +1,37 @@
 package core
 
-import "sort"
+import (
+	"sort"
 
-type IComponent interface {
-	GetName() string
-}
+	"galaxyzeta.io/engine/base"
+)
 
-type ISystem interface {
-	Execute()
-	GetPriority() int
-	Disable()
-	Enable()
-	IsEnabled() bool
+// JoinSystem
+func JoinSystem(iobj2d, IGameObject2D, sys base.ISystem) {
+
 }
 
 // RegisterSystems to the game. Cannot disamount systems currently.
-func RegisterSystem(sys ...ISystem) {
+func RegisterSystem(sys ...base.ISystem) {
 	systemPriorityList = append(systemPriorityList, sys...)
 	SystemSort()
 	// re-assign pos
 	for i, s := range systemPriorityList {
-		systemMap[s] = i
+		systemPriorityMap[s] = i
 	}
 }
 
 // SystemSort re-sort all registered systems' priorities from low to hign.
 func SystemSort() {
 	sort.Slice(systemPriorityList, func(i, j int) bool {
-		return systemPriorityList[i].GetPriority() > systemPriorityList[j].GetPriority()
+		return systemPriorityList[i].GetSystemBase().GetPriority() > systemPriorityList[j].GetSystemBase().GetPriority()
 	})
 }
 
 // UnregisterSystem delete an system
-func UnregisterSystem(sys ISystem) {
-	pos := systemMap[sys]
-	delete(systemMap, sys)
+func UnregisterSystem(sys base.ISystem) {
+	pos := systemPriorityMap[sys]
+	delete(systemPriorityMap, sys)
 	slen := len(systemPriorityList)
 	// removal of element
 	for i := pos + 1; i < slen; i++ {
@@ -42,4 +39,8 @@ func UnregisterSystem(sys ISystem) {
 	}
 	systemPriorityList = systemPriorityList[:slen-1]
 	SystemSort()
+}
+
+func GetSystem() {
+
 }

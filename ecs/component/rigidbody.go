@@ -16,8 +16,8 @@ type RigidBody2D struct {
 	mu           lock.SpinLock
 }
 
-func NewRigidBody2D() *Transform2D {
-	return new(Transform2D)
+func NewRigidBody2D() *RigidBody2D {
+	return new(RigidBody2D)
 }
 
 // GetName is an implementation of IComponent.

@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"sync"
 
+	"galaxyzeta.io/engine/base"
 	"galaxyzeta.io/engine/graphics"
 	"galaxyzeta.io/engine/input/keys"
 	"galaxyzeta.io/engine/linalg"
@@ -48,7 +49,7 @@ func GlobalInitializer() {
 	}
 
 	// init render sorting list
-	renderSortList = make([]*GameObject2D, 0, 1024)
+	renderSortList = make([]*base.GameObject2D, 0, 1024)
 
 	// init global stuff
 	sceneMap = make(map[string]*Scene)
