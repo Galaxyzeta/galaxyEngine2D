@@ -41,7 +41,7 @@ func TestBlock_OnCreate() base.IGameObject2D {
 
 func __TestBlock_OnRender(obj base.IGameObject2D) {
 	this := obj.(*TestBlock)
-	this.Sprite.Render(sdk.GetCamera(0), linalg.Point2f32{X: this.tf.X, Y: this.tf.Y})
+	this.Sprite.Render(sdk.GetCamera(0), linalg.Point2f64{X: this.tf.X, Y: this.tf.Y})
 }
 
 // GetGameObject2D implements IGameObject2D.

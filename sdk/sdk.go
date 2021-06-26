@@ -18,7 +18,7 @@ func StartApplication(cfg *core.AppConfig) {
 }
 
 // ScreenResolution get current screen's resolution. It is thread-safe.
-func ScreenResolution() linalg.Vector2f32 {
+func ScreenResolution() linalg.Vector2f64 {
 	return graphics.GetScreenResolution()
 }
 

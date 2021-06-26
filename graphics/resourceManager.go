@@ -9,7 +9,7 @@ import (
 var spriteMetaMap map[string]SpriteMeta
 var frameMap map[string]*GLFrame
 var shaderMap map[string]*Shader
-var screenResolution *linalg.Vector2f32 = &linalg.Vector2f32{}
+var screenResolution *linalg.Vector2f64 = &linalg.Vector2f64{}
 
 var mutexList []sync.RWMutex
 
@@ -26,14 +26,14 @@ func init() {
 	mutexList[mutexScreenResolution] = sync.RWMutex{}
 }
 
-func SetScreenResolution(x float32, y float32) {
+func SetScreenResolution(x float64, y float64) {
 	mutexList[mutexScreenResolution].Lock()
 	screenResolution.X = x
 	screenResolution.Y = y
 	mutexList[mutexScreenResolution].Unlock()
 }
 
-func GetScreenResolution() linalg.Vector2f32 {
+func GetScreenResolution() linalg.Vector2f64 {
 	mutexList[mutexScreenResolution].RLock()
 	defer mutexList[mutexScreenResolution].RUnlock()
 	return *screenResolution

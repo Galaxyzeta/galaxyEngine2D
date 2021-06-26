@@ -3,6 +3,6 @@ package graphics
 import "galaxyzeta.io/engine/linalg"
 
 type Camera struct {
-	Pos        linalg.Point2f32
-	Resolution linalg.Vector2f32
+	Pos        linalg.Point2f64
+	Resolution linalg.Vector2f64
 }

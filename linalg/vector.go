@@ -33,5 +33,14 @@ type Vector2i struct {
 }
 
 type Point2f32 Vector2f32
+type Point2f64 Vector2f64
 type Point2i64 Vector2i64
 type Point2i Vector2i
+
+func (vec1 Vector2f32) Add(vec2 Vector2f32) Vector2f32 {
+	return Vector2f32{vec1.X + vec2.X, vec1.Y + vec2.Y}
+}
+
+func (vec1 Vector2f32) Sub(vec2 Vector2f32) Vector2f32 {
+	return Vector2f32{vec1.X - vec2.X, vec1.Y - vec2.Y}
+}

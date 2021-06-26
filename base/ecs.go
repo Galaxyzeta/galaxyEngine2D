@@ -12,6 +12,8 @@ type ISystem interface {
 	Execute(*cc.Executor)
 	GetSystemBase() *SystemBase // GetSystemBase gets the basic element of a system.
 	GetName() string
+	Register(IGameObject2D)
+	Unregister(IGameObject2D)
 }
 
 type SystemBase struct {

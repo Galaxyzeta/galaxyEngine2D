@@ -38,11 +38,11 @@ func GlobalInitializer() {
 	// init camera list
 	cameraPool = make([]*graphics.Camera, 1, 4)
 	cameraPool[0] = &graphics.Camera{
-		Pos: linalg.Point2f32{
+		Pos: linalg.Point2f64{
 			X: 0,
 			Y: 0,
 		},
-		Resolution: linalg.Vector2f32{
+		Resolution: linalg.Vector2f64{
 			X: 640,
 			Y: 480,
 		},

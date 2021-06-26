@@ -18,7 +18,7 @@ func init() {
 
 func GameEngineTest() {
 	sdk.StartApplication(&core.AppConfig{
-		Resolution:  &linalg.Vector2f32{X: 640, Y: 480},
+		Resolution:  &linalg.Vector2f64{X: 640, Y: 480},
 		PhysicalFps: 60,
 		RenderFps:   60,
 		Parallelism: 4,
@@ -27,7 +27,7 @@ func GameEngineTest() {
 			loadResource()
 			core.RegisterSystem(system.NewPhysics2DSystem(0))
 			sdk.Create(objs.TestPlayer_OnCreate)
-			var i float32
+			var i float64
 			for i = 0; i < 480/16; i++ {
 				b := sdk.Create(objs.TestBlock_OnCreate)
 				tf := b.GetGameObject2D().GetComponent(component.NameTransform2D).(*component.Transform2D)

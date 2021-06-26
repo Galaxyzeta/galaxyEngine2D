@@ -8,7 +8,9 @@ import (
 	"fmt"
 
 	"galaxyzeta.io/engine/base"
+	"galaxyzeta.io/engine/core"
 	"galaxyzeta.io/engine/ecs/component"
+	"galaxyzeta.io/engine/ecs/system"
 	"galaxyzeta.io/engine/graphics"
 	"galaxyzeta.io/engine/input"
 	"galaxyzeta.io/engine/input/keys"
@@ -34,11 +36,13 @@ func TestPlayer_OnCreate() base.IGameObject2D {
 		RegisterComponentIfAbsent(component.NewTransform2D()).
 		RegisterComponentIfAbsent(component.NewRigidBody2D())
 	gameObject2D.Sprite = graphics.NewSpriteInstance("spr_megaman")
-	return &TestPlayer{
+	ret := &TestPlayer{
 		GameObject2D: gameObject2D,
 		tf:           gameObject2D.GetComponent(component.NameTransform2D).(*component.Transform2D),
 		rb:           gameObject2D.GetComponent(component.NameRigidBody2D).(*component.RigidBody2D),
 	}
+	core.SubscribeSystem(ret, system.NamePhysics2DSystem)
+	return ret
 }
 
 //__TestPlayer_OnStep is intentionally names with two underlines,
@@ -49,18 +53,24 @@ func __TestPlayer_OnStep(obj base.IGameObject2D) {
 	isKeyHeld := false
 	if input.IsKeyHeld(keys.KeyW) {
 		this.rb.Speed = 3
-		this.rb.Acceleration = 1
+		this.rb.Acceleration = 0.1
 		this.rb.Direction = 90
 		isKeyHeld = true
 	} else if input.IsKeyHeld(keys.KeyS) {
-		this.tf.Y += 1
+		this.rb.Speed = 3
+		this.rb.Acceleration = 0.1
+		this.rb.Direction = 270
 		isKeyHeld = true
 	}
 	if input.IsKeyHeld(keys.KeyA) {
-		this.tf.X -= 1
+		this.rb.Speed = 3
+		this.rb.Acceleration = 0.1
+		this.rb.Direction = 180
 		isKeyHeld = true
 	} else if input.IsKeyHeld(keys.KeyD) {
-		this.tf.X += 1
+		this.rb.Speed = 3
+		this.rb.Acceleration = 0.1
+		this.rb.Direction = 0
 		isKeyHeld = true
 	}
 	if isKeyHeld {
@@ -72,7 +82,7 @@ func __TestPlayer_OnStep(obj base.IGameObject2D) {
 
 func __TestPlayer_OnRender(obj base.IGameObject2D) {
 	this := obj.(*TestPlayer)
-	this.Sprite.Render(sdk.GetCamera(0), linalg.Point2f32{X: this.tf.X, Y: this.tf.Y})
+	this.Sprite.Render(sdk.GetCamera(0), linalg.Point2f64{X: this.tf.X, Y: this.tf.Y})
 }
 
 func __TestPlayer_OnDestroy(obj base.IGameObject2D) {

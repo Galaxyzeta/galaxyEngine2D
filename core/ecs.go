@@ -6,18 +6,14 @@ import (
 	"galaxyzeta.io/engine/base"
 )
 
-// JoinSystem
-func JoinSystem(iobj2d, IGameObject2D, sys base.ISystem) {
-
-}
-
 // RegisterSystems to the game. Cannot disamount systems currently.
 func RegisterSystem(sys ...base.ISystem) {
 	systemPriorityList = append(systemPriorityList, sys...)
 	SystemSort()
 	// re-assign pos
 	for i, s := range systemPriorityList {
-		systemPriorityMap[s] = i
+		system2Priority[s] = i
+		name2System[s.GetName()] = s
 	}
 }
 
@@ -30,8 +26,9 @@ func SystemSort() {
 
 // UnregisterSystem delete an system
 func UnregisterSystem(sys base.ISystem) {
-	pos := systemPriorityMap[sys]
-	delete(systemPriorityMap, sys)
+	pos := system2Priority[sys]
+	delete(system2Priority, sys)
+	delete(name2System, sys.GetName())
 	slen := len(systemPriorityList)
 	// removal of element
 	for i := pos + 1; i < slen; i++ {
@@ -41,6 +38,14 @@ func UnregisterSystem(sys base.ISystem) {
 	SystemSort()
 }
 
-func GetSystem() {
+// SubscribeSystem registers an object into given system.
+// Will panic if the system was not found.
+func SubscribeSystem(iobj base.IGameObject2D, sysname string) {
+	name2System[sysname].Register(iobj)
+}
 
+// UnsubscribeSystem unregisters an object from given system.
+// Will panic if the system was not found.
+func UnsubscribeSystem(iobj base.IGameObject2D, sysname string) {
+	name2System[sysname].Unregister(iobj)
 }

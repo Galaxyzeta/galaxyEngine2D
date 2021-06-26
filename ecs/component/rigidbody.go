@@ -8,11 +8,11 @@ import (
 const NameRigidBody2D = "RigidBody"
 
 type RigidBody2D struct {
-	Gravity      float32
-	GravityDir   float32
-	Speed        float32
-	Direction    float32
-	Acceleration float32
+	Gravity      float64
+	GravityDir   float64
+	Speed        float64
+	Direction    float64
+	Acceleration float64
 	mu           lock.SpinLock
 }
 

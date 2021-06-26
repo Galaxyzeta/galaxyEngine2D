@@ -23,9 +23,14 @@ type Future struct {
 }
 
 func NewExecutor(size int) *Executor {
+	jobChannel := make([]chan Future, size) // TODO turn this into user defined config
+	for idx, _ := range jobChannel {
+		jobChannel[idx] = make(chan Future, 256)
+	}
+
 	return &Executor{
 		size:         size,
-		jobChannel:   make([]chan Future, size),
+		jobChannel:   jobChannel,
 		loadBalancer: lb.NewRoundRobin(size),
 		wg:           sync.WaitGroup{},
 	}

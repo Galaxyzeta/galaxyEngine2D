@@ -80,18 +80,18 @@ func NewSpriteInstance(sprMetaName string) (spr *SpriteInstance) {
 }
 
 // Render sprite. Sprite must exist.
-func (spr *SpriteInstance) Render(camera *Camera, pos linalg.Point2f32) {
+func (spr *SpriteInstance) Render(camera *Camera, pos linalg.Point2f64) {
 	currentGLImg := spr.frames[spr.currentFrame]
-	dx := float32(currentGLImg.img.Bounds().Dx())
-	dy := float32(currentGLImg.img.Bounds().Dy())
-	vertices := []float32{
+	dx := float64(currentGLImg.img.Bounds().Dx())
+	dy := float64(currentGLImg.img.Bounds().Dy())
+	vertices := []float64{
 		pos.X, pos.Y, 0, 0, 0,
 		pos.X, pos.Y + dy, 0, 0, 1,
 		pos.X + dx, pos.Y + dy, 0, 1, 1,
 		pos.X + dx, pos.Y, 0, 1, 0,
 	}
 	linalg.WorldVertice2OpenGL(&vertices, 0, 5, camera.Pos, camera.Resolution, GetScreenResolution())
-	// vertices := []float32{
+	// vertices := []float64{
 	// 	-0.5, 0.5, 0, 0, 0,
 	// 	-0.5, -0.5, 0, 0, 1,
 	// 	0.5, -0.5, 0, 1, 1,
@@ -100,7 +100,7 @@ func (spr *SpriteInstance) Render(camera *Camera, pos linalg.Point2f32) {
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 	GLActivateTexture(currentGLImg.glTexture)
-	GLBindData(spr.vbo, vertices, len(vertices)*4, gl.DYNAMIC_DRAW)
+	GLBindData(spr.vbo, vertices, len(vertices)*8, gl.DYNAMIC_DRAW)
 	GLActivateShader("default")
 	gl.DrawArrays(gl.QUADS, 0, 4)
 	gl.Disable(gl.BLEND)

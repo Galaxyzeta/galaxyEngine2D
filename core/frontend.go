@@ -34,7 +34,7 @@ func keyboardCb(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, 
 }
 
 // InitOpenGL will be called at the very beginning of the whole program.
-func InitOpenGL(resolution linalg.Vector2f32, title string) *glfw.Window {
+func InitOpenGL(resolution linalg.Vector2f64, title string) *glfw.Window {
 	// glfw init
 	err := glfw.Init()
 	if err != nil {
@@ -76,12 +76,12 @@ func installShaders() {
 			// process input
 			// -- position
 			aPos := uint32(gl.GetAttribLocation(program, gl.Str("aPos\x00")))
-			gl.VertexAttribPointerWithOffset(aPos, 3, gl.FLOAT, false, 5*4, 0)
+			gl.VertexAttribPointerWithOffset(aPos, 3, gl.DOUBLE, false, 5*8, 0)
 			gl.EnableVertexAttribArray(aPos)
 			// -- uv
 			texcoord := uint32(gl.GetAttribLocation(program, gl.Str("vertTexCoord\x00")))
 			gl.EnableVertexAttribArray(texcoord)
-			gl.VertexAttribPointerWithOffset(texcoord, 2, gl.FLOAT, false, 5*4, 3*4)
+			gl.VertexAttribPointerWithOffset(texcoord, 2, gl.DOUBLE, false, 5*8, 3*8)
 		})
 	graphics.GLNewShader("noshader", 0, graphics.GLNewVAO(1), nil)
 }

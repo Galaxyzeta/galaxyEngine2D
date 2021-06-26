@@ -8,10 +8,10 @@ import (
 const NameTransform2D = "Transform2D"
 
 type Transform2D struct {
-	prevX float32
-	prevY float32
-	X     float32
-	Y     float32
+	prevX float64
+	prevY float64
+	X     float64
+	Y     float64
 	mu    lock.SpinLock
 }
 
@@ -27,11 +27,11 @@ func (tf *Transform2D) GetName() string {
 
 // ===== PUBLIC METHOD =====
 
-func (tf *Transform2D) GetPrevX() float32 {
+func (tf *Transform2D) GetPrevX() float64 {
 	return tf.prevX
 }
 
-func (tf *Transform2D) GetPrevY() float32 {
+func (tf *Transform2D) GetPrevY() float64 {
 	return tf.prevY
 }
 

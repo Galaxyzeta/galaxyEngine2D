@@ -30,7 +30,7 @@ const (
 
 // AppConfig stores all user defined configs.
 type AppConfig struct {
-	Resolution  *linalg.Vector2f32
+	Resolution  *linalg.Vector2f64
 	PhysicalFps int
 	RenderFps   int
 	Parallelism int
@@ -108,6 +108,9 @@ func (app *Application) Start() {
 	app.running = true
 	app.status = GameLoopStats_Running
 
+	// bootup executor
+	app.executor.Run()
+
 	// --- begin render infinite loop
 	app.wg.Add(1)
 	RenderLoop(window, app.doRender, app.sigKill)
@@ -134,6 +137,11 @@ func (g *Application) Wait() {
 
 func (app *Application) runWorkerLoop() {
 	app.startTime = time.Now()
+	// before run, enable all systems
+	for _, system := range name2System {
+		system.GetSystemBase().Enable()
+	}
+
 	for app.running {
 		select {
 		case <-app.physicalTicker.C:

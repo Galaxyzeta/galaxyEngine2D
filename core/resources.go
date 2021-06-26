@@ -41,8 +41,8 @@ var renderSortList []*base.GameObject2D // this array is a stash used for depth 
 var routinePool *cc.Executor
 
 var systemPriorityList []base.ISystem = make([]base.ISystem, 0, 256)
-var systemPriorityMap map[base.ISystem]int = make(map[base.ISystem]int)
-var systemNameMap map[string]base.ISystem = make(map[string]base.ISystem)
+var system2Priority map[base.ISystem]int = make(map[base.ISystem]int)
+var name2System map[string]base.ISystem = make(map[string]base.ISystem)
 
 const MaxRenderListSize = 256
 
