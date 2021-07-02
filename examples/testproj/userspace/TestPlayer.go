@@ -41,6 +41,9 @@ func TestPlayer_OnCreate() base.IGameObject2D {
 		tf:           gameObject2D.GetComponent(component.NameTransform2D).(*component.Transform2D),
 		rb:           gameObject2D.GetComponent(component.NameRigidBody2D).(*component.RigidBody2D),
 	}
+	// Enable gravity
+	ret.rb.UseGravity = true
+	ret.rb.SetGravity(270, 0.001)
 	core.SubscribeSystem(ret, system.NamePhysics2DSystem)
 	return ret
 }
@@ -52,25 +55,17 @@ func __TestPlayer_OnStep(obj base.IGameObject2D) {
 	this := obj.(*TestPlayer)
 	isKeyHeld := false
 	if input.IsKeyHeld(keys.KeyW) {
-		this.rb.Speed = 3
-		this.rb.Acceleration = 0.1
-		this.rb.Direction = 90
+		this.tf.Translate(0, -1)
 		isKeyHeld = true
 	} else if input.IsKeyHeld(keys.KeyS) {
-		this.rb.Speed = 3
-		this.rb.Acceleration = 0.1
-		this.rb.Direction = 270
+		this.tf.Translate(0, 1)
 		isKeyHeld = true
 	}
 	if input.IsKeyHeld(keys.KeyA) {
-		this.rb.Speed = 3
-		this.rb.Acceleration = 0.1
-		this.rb.Direction = 180
+		this.tf.Translate(-1, 0)
 		isKeyHeld = true
 	} else if input.IsKeyHeld(keys.KeyD) {
-		this.rb.Speed = 3
-		this.rb.Acceleration = 0.1
-		this.rb.Direction = 0
+		this.tf.Translate(1, 0)
 		isKeyHeld = true
 	}
 	if isKeyHeld {

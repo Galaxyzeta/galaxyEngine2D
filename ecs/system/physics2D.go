@@ -1,6 +1,7 @@
 package system
 
 import (
+	"log"
 	"math"
 
 	"galaxyzeta.io/engine/base"
@@ -30,19 +31,39 @@ func NewPhysics2DSystem(prioriy int) *Physics2DSystem {
 }
 
 func (s *Physics2DSystem) execute(item PhysicalComponentWrapper) {
-	var rad float64 = float64(linalg.Deg2Rad(linalg.InvertDeg(item.Direction)))
-	item.Transform2D.X += item.Speed * math.Cos(rad)
-	item.Transform2D.Y += item.Speed * math.Sin(rad)
-	// speed attenuation
-	if item.Speed > 0 {
-		item.Speed -= item.Acceleration
-		if item.Speed < 0 {
-			item.Speed = 0
+	linkedList := item.RigidBody2D.GetSpeedList()
+	var dx, dy float64
+	for element := linkedList.Front(); element != nil; element = element.Next() {
+		val := element.Value.(component.SpeedVector)
+		deg := linalg.Deg2Rad(linalg.InvertDeg(val.Direction))
+		dx += val.Speed * math.Cos(deg)
+		dy += val.Speed * math.Sin(deg)
+		// do speed atten
+		if val.Speed > 0 {
+			val.Speed -= val.Acceleration
+			if val.Speed < 0 {
+				linkedList.Remove(element)
+				continue
+			}
 		}
+		element.Value = val
 	}
+	// constant gravity effect
+	if item.UseGravity {
+		log.Println("use gravity")
+		gdeg := linalg.Deg2Rad(linalg.InvertDeg(item.GravityVector.Direction))
+		dx += item.GravityVector.Speed * math.Cos(gdeg)
+		dy += item.GravityVector.Speed * math.Sin(gdeg)
+		item.GravityVector.Speed += item.GravityVector.Acceleration
+	}
+
+	item.Transform2D.X += dx
+	item.Transform2D.Y += dy
+
 }
 
 // ===== IMPLEMENTATION =====
+
 func (s *Physics2DSystem) Execute(executor *cc.Executor) {
 	for _, item := range s.obj2data {
 		executor.AsyncExecute(func() (interface{}, error) {

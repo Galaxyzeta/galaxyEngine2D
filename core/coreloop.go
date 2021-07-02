@@ -187,6 +187,7 @@ func (g *Application) doRender() {
 }
 
 func (g *Application) doPhysicalUpdate() {
+	watchdog := time.Now()
 	// 1. check whether there are items to create
 	for len(g.registerChannel) > 0 {
 		req := <-g.registerChannel
@@ -218,5 +219,10 @@ func (g *Application) doPhysicalUpdate() {
 			tf := iobj2d.GetGameObject2D().GetComponent(component.NameTransform2D).(*component.Transform2D)
 			tf.MemXY()
 		}
+	}
+	elapsed := time.Since(watchdog)
+	if elapsed > time.Second/time.Duration(app.physicalFPS) {
+		fmt.Println("WARNING: slow frame detected")
+		fmt.Println(elapsed)
 	}
 }

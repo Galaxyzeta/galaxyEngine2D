@@ -1,7 +1,6 @@
 package cc
 
 import (
-	"fmt"
 	"sync"
 
 	"galaxyzeta.io/engine/infra/lb"
@@ -47,16 +46,16 @@ func (e *Executor) Run() {
 
 func (e *Executor) jobExecutorRoutine(id int, wg sync.WaitGroup) {
 
-	defer func() {
-		p := recover()
-		if p != nil {
-			fmt.Println("[Fatal] jobExecutorRoutine catches a panic: %v", p)
-			if e.isRunning == false {
-				return
-			}
-			go e.jobExecutorRoutine(id, wg)
-		}
-	}()
+	// defer func() {
+	// 	p := recover()
+	// 	if p != nil {
+	// 		fmt.Println("[Fatal] jobExecutorRoutine catches a panic: %v", p)
+	// 		if e.isRunning == false {
+	// 			return
+	// 		}
+	// 		go e.jobExecutorRoutine(id, wg)
+	// 	}
+	// }()
 
 	for e.isRunning {
 		executionCtx := <-e.jobChannel[id]

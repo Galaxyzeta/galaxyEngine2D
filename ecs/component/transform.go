@@ -41,6 +41,18 @@ func (tf *Transform2D) MemXY() {
 	tf.prevY = tf.Y
 }
 
+// Transalte a delta distance.
+func (tf *Transform2D) Translate(x float64, y float64) {
+	tf.X += x
+	tf.Y += y
+}
+
+// Teleport to a given location.
+func (tf *Transform2D) Teleport(x float64, y float64) {
+	tf.X = x
+	tf.Y = y
+}
+
 // ===== LOCK METHODS =====
 
 func (tf *Transform2D) Lock() {
