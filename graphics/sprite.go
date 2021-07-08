@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"galaxyzeta.io/engine/linalg"
+	"galaxyzeta.io/engine/physics"
 	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
@@ -104,7 +105,62 @@ func (spr *SpriteInstance) Render(camera *Camera, pos linalg.Point2f64) {
 	GLActivateShader("default")
 	gl.DrawArrays(gl.QUADS, 0, 4)
 	gl.Disable(gl.BLEND)
+}
 
+// Render sprite. Sprite must exist.
+func (spr *SpriteInstance) RenderWire(camera *Camera, pos linalg.Point2f64, color linalg.RgbaF64) {
+	currentGLImg := spr.frames[spr.currentFrame]
+	dx := float64(currentGLImg.img.Bounds().Dx())
+	dy := float64(currentGLImg.img.Bounds().Dy())
+	vertices := []float64{
+		pos.X, pos.Y, 0, color.X, color.Y, color.Z, color.W,
+		pos.X, pos.Y + dy, 0, color.X, color.Y, color.Z, color.W,
+		pos.X + dx, pos.Y + dy, 0, color.X, color.Y, color.Z, color.W,
+		pos.X + dx, pos.Y, 0, color.X, color.Y, color.Z, color.W,
+	}
+	linalg.WorldVertice2OpenGL(&vertices, 0, 7, camera.Pos, camera.Resolution, GetScreenResolution())
+
+	gl.Enable(gl.BLEND)
+	GLEnableWireframe()
+	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+	GLDeactivateTexture()
+	GLBindData(spr.vbo, vertices, len(vertices)*8, gl.DYNAMIC_DRAW)
+	GLActivateShader("color")
+	gl.DrawArrays(gl.QUADS, 0, 4)
+	gl.Disable(gl.BLEND)
+	GLDisableWireFrame()
+}
+
+func (spr *SpriteInstance) GetHitbox(anchor *linalg.Vector2f64, pivot physics.Pivot) physics.Polygon {
+	maxWidth := -1
+	maxHeight := -1
+	for _, frame := range spr.frames {
+		cx := frame.img.Bounds().Dx()
+		cy := frame.img.Bounds().Dy()
+		if cx > maxWidth {
+			maxWidth = cx
+		}
+		if cy > maxHeight {
+			maxHeight = cy
+		}
+	}
+	f64w := float64(maxWidth)
+	f64h := float64(maxHeight)
+	retVert := []linalg.Vector2f64{
+		linalg.NewVector2f64(0, 0),
+		linalg.NewVector2f64(0, f64h),
+		linalg.NewVector2f64(f64w, f64h),
+		linalg.NewVector2f64(f64w, 0),
+	}
+	// get pivot point
+	var pivotPoint linalg.Vector2f64
+	if pivot.Point != nil {
+		pivotPoint = *pivot.Point
+	} else {
+		pivotPoint = pivot.Option.GetPivotPoint(physics.SliceToBoundingBox(retVert))
+	}
+
+	return *physics.NewPolygon(anchor, pivotPoint, 0, retVert)
 }
 
 func (spr *SpriteInstance) DoFrameStep() {

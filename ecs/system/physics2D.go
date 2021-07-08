@@ -1,7 +1,6 @@
 package system
 
 import (
-	"log"
 	"math"
 
 	"galaxyzeta.io/engine/base"
@@ -50,15 +49,14 @@ func (s *Physics2DSystem) execute(item PhysicalComponentWrapper) {
 	}
 	// constant gravity effect
 	if item.UseGravity {
-		log.Println("use gravity")
 		gdeg := linalg.Deg2Rad(linalg.InvertDeg(item.GravityVector.Direction))
 		dx += item.GravityVector.Speed * math.Cos(gdeg)
 		dy += item.GravityVector.Speed * math.Sin(gdeg)
 		item.GravityVector.Speed += item.GravityVector.Acceleration
 	}
 
-	item.Transform2D.X += dx
-	item.Transform2D.Y += dy
+	item.Transform2D.Pos.X += dx
+	item.Transform2D.Pos.Y += dy
 
 }
 

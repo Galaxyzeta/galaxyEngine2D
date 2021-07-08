@@ -56,8 +56,11 @@ func InitOpenGL(resolution linalg.Vector2f64, title string) *glfw.Window {
 	}
 	version := gl.GoStr(gl.GetString(gl.VERSION))
 	fmt.Printf("OpenGL version = %v\n", version)
+
 	// install shaders
 	installShaders()
+	// init vbo pool
+	graphics.InitVboPool(32)
 
 	return window
 }
@@ -82,6 +85,21 @@ func installShaders() {
 			texcoord := uint32(gl.GetAttribLocation(program, gl.Str("vertTexCoord\x00")))
 			gl.EnableVertexAttribArray(texcoord)
 			gl.VertexAttribPointerWithOffset(texcoord, 2, gl.DOUBLE, false, 5*8, 3*8)
+		})
+	graphics.GLNewShader(
+		"color",
+		graphics.GLMustPrepareShaderProgram(fmt.Sprintf("%s/graphics/shaders/colorVertex.glsl", GetCwd()), fmt.Sprintf("%s/graphics/shaders/colorFragment.glsl", GetCwd())),
+		graphics.GLNewVAO(1),
+		func(program uint32) {
+			// process input
+			// -- position
+			aPos := uint32(gl.GetAttribLocation(program, gl.Str("aPos\x00")))
+			gl.VertexAttribPointerWithOffset(aPos, 3, gl.DOUBLE, false, 7*8, 0)
+			gl.EnableVertexAttribArray(aPos)
+			// -- color
+			color := uint32(gl.GetAttribLocation(program, gl.Str("inputColor\x00")))
+			gl.EnableVertexAttribArray(color)
+			gl.VertexAttribPointerWithOffset(color, 4, gl.DOUBLE, false, 7*8, 3*8)
 		})
 	graphics.GLNewShader("noshader", 0, graphics.GLNewVAO(1), nil)
 }

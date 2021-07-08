@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"galaxyzeta.io/engine/base"
-	"galaxyzeta.io/engine/graphics"
 	"galaxyzeta.io/engine/input/keys"
 )
 
@@ -90,10 +89,6 @@ func mapActionType2Mutex(actionType keys.Action) MutexIndex {
 	panic("unknown mapping")
 }
 
-func GetCamera(index int) *graphics.Camera {
-	return cameraPool[index]
-}
-
 // SetInputBuffer sets action and key binding to inputBuffer.
 // Thread-safe.
 func SetInputBuffer(actionType keys.Action, key keys.Key) {
@@ -140,4 +135,20 @@ func FlushInputBuffer() {
 // GetCwd gets current working directory.
 func GetCwd() string {
 	return cwd
+}
+
+func poolMapReplica(orig map[label]objPool) (ret map[label]objPool) {
+	ret = make(map[label]objPool, len(orig))
+	for k, v := range orig {
+		ret[k] = poolReplica(v)
+	}
+	return
+}
+
+func poolReplica(p objPool) (ret objPool) {
+	ret = make(objPool, len(p))
+	for k, v := range p {
+		ret[k] = v
+	}
+	return
 }

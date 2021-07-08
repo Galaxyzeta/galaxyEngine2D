@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"galaxyzeta.io/engine/base"
-	"galaxyzeta.io/engine/graphics"
 	cc "galaxyzeta.io/engine/infra/concurrency"
 	"galaxyzeta.io/engine/input/keys"
 )
@@ -35,7 +34,6 @@ var activePool map[label]objPool
 var inactivePool map[label]objPool
 var labelPool map[label]struct{}
 var sceneMap map[string]*Scene
-var cameraPool []*graphics.Camera
 var renderSortList []*base.GameObject2D // this array is a stash used for depth base layer sorting.
 
 var routinePool *cc.Executor

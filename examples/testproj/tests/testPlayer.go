@@ -9,6 +9,7 @@ import (
 	objs "galaxyzeta.io/engine/examples/testproj/userspace"
 	"galaxyzeta.io/engine/graphics"
 	"galaxyzeta.io/engine/linalg"
+	"galaxyzeta.io/engine/physics"
 	"galaxyzeta.io/engine/sdk"
 )
 
@@ -26,13 +27,14 @@ func GameEngineTest() {
 		InitFunc: func() {
 			loadResource()
 			core.RegisterSystem(system.NewPhysics2DSystem(0))
+			core.RegisterSystem(system.NewQuadTreeCollision2DSystem(0, physics.NewRectangle(0, 0, 1024, 1024), 4, 128))
 			sdk.Create(objs.TestPlayer_OnCreate)
 			var i float64
 			for i = 0; i < 480/16; i++ {
 				b := sdk.Create(objs.TestBlock_OnCreate)
 				tf := b.GetGameObject2D().GetComponent(component.NameTransform2D).(*component.Transform2D)
-				tf.X = i * 16
-				tf.Y = 128
+				tf.Pos.X = i * 16
+				tf.Pos.Y = 128
 			}
 		},
 	})
