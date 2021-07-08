@@ -6,9 +6,7 @@ import (
 	"sync"
 
 	"galaxyzeta.io/engine/base"
-	"galaxyzeta.io/engine/graphics"
 	"galaxyzeta.io/engine/input/keys"
-	"galaxyzeta.io/engine/linalg"
 )
 
 func GlobalInitializer() {
@@ -33,19 +31,6 @@ func GlobalInitializer() {
 	casList = make([]int32, 8)
 	for idx := range mutexList {
 		casList[idx] = Cas_False
-	}
-
-	// init camera list
-	cameraPool = make([]*graphics.Camera, 1, 4)
-	cameraPool[0] = &graphics.Camera{
-		Pos: linalg.Point2f64{
-			X: 0,
-			Y: 0,
-		},
-		Resolution: linalg.Vector2f64{
-			X: 640,
-			Y: 480,
-		},
 	}
 
 	// init render sorting list

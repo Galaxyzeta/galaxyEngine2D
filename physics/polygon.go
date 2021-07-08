@@ -21,7 +21,7 @@ func NewPolygon(anchor *linalg.Vector2f64, pivot linalg.Vector2f64, deg float64,
 		pivot:       pivot,
 		rotationDeg: deg,
 	}
-	ret.boundingBox = ret.CalcAndGetBoundingBox()
+	ret.boundingBox = ret.GetBoundingBox()
 	return ret
 }
 
@@ -31,22 +31,16 @@ func (poly Polygon) GetAnchor() *linalg.Vector2f64 {
 
 // GetWorldVertices converts a polygon to world coordinates system.
 func (poly Polygon) GetWorldVertices() []linalg.Vector2f64 {
-	var vertices []linalg.Vector2f64 = poly.vertices
-	for idx, vertice := range vertices {
-		vertices[idx].X = (vertice.X-poly.pivot.X)*math.Cos(poly.rotationDeg) - (vertice.Y-poly.pivot.Y)*math.Sin(poly.rotationDeg) + poly.anchor.X
-		vertices[idx].Y = (vertice.X-poly.pivot.X)*math.Sin(poly.rotationDeg) - (vertice.Y-poly.pivot.Y)*math.Cos(poly.rotationDeg) + poly.anchor.Y
+	verticesReplica := make([]linalg.Vector2f64, len(poly.vertices))
+	copy(verticesReplica[:], poly.vertices)
+	rotRad := linalg.Deg2Rad(poly.rotationDeg)
+	for idx, vertice := range verticesReplica {
+		x := (vertice.X-poly.pivot.X)*math.Cos(rotRad) - (vertice.Y-poly.pivot.Y)*math.Sin(rotRad) + poly.anchor.X
+		y := (vertice.X-poly.pivot.X)*math.Sin(rotRad) - (vertice.Y-poly.pivot.Y)*math.Cos(rotRad) + poly.anchor.Y
+		verticesReplica[idx].X = x
+		verticesReplica[idx].Y = y
 	}
-	return vertices
-}
-
-// GetBoundingBox gets the bounding box in absolute world coordinates.
-func (poly Polygon) GetBoundingBox() BoundingBox {
-	ret := poly.boundingBox
-	for _, elem := range ret {
-		elem.X += poly.anchor.X
-		elem.Y += poly.anchor.Y
-	}
-	return ret
+	return verticesReplica
 }
 
 // Intersect checks whether two polygons overlaps with eachother.
@@ -73,37 +67,38 @@ func (poly Polygon) Intersect(poly2 Polygon) bool {
 	return true
 }
 
-// CalcAndGetBoundingBox returns a bounding box calculated by current
-func (poly Polygon) CalcAndGetBoundingBox() BoundingBox {
+// GetBoundingBox returns a bounding box calculated by current conditions.
+func (poly Polygon) GetBoundingBox() BoundingBox {
+	currentWorldVetices := poly.GetWorldVertices()
 	var minX, minY, maxX, maxY float64
-	minX = poly.vertices[0].X
+	minX = currentWorldVetices[0].X
 	maxX = minY
-	minY = poly.vertices[0].Y
+	minY = currentWorldVetices[0].Y
 	maxY = minY
-	for i := 1; i < len(poly.vertices); i++ {
-		if poly.vertices[i].X < minX {
-			minX = poly.vertices[i].X
-		} else if poly.vertices[i].X > maxX {
-			maxX = poly.vertices[i].X
+	for i := 1; i < len(currentWorldVetices); i++ {
+		if currentWorldVetices[i].X < minX {
+			minX = currentWorldVetices[i].X
+		} else if currentWorldVetices[i].X > maxX {
+			maxX = currentWorldVetices[i].X
 		}
 
-		if poly.vertices[i].Y < minY {
-			minY = poly.vertices[i].Y
-		} else if poly.vertices[i].Y > maxY {
-			maxY = poly.vertices[i].Y
+		if currentWorldVetices[i].Y < minY {
+			minY = currentWorldVetices[i].Y
+		} else if currentWorldVetices[i].Y > maxY {
+			maxY = currentWorldVetices[i].Y
 		}
 	}
 	return [4]linalg.Vector2f64{
-		{X: minX, Y: minY},
-		{X: maxX, Y: minY},
-		{X: maxX, Y: maxY},
-		{X: minX, Y: maxY},
+		{X: maxX, Y: minY}, // top right
+		{X: minX, Y: minY}, // top left
+		{X: minX, Y: maxY}, // bot left
+		{X: maxX, Y: maxY}, // bot right
 	}
 }
 
 // ProjectOn an axis.
 func (poly Polygon) ProjectOn(axis linalg.Vector2f64) linalg.Vector2f64 {
-	vertices := poly.vertices
+	vertices := poly.GetWorldVertices()
 	min := vertices[0].Dot(axis)
 	max := min
 	for i := 1; i < len(vertices); i++ {

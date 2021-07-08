@@ -3,16 +3,15 @@ package component
 import (
 	"galaxyzeta.io/engine/config"
 	"galaxyzeta.io/engine/infra/concurrency/lock"
+	"galaxyzeta.io/engine/linalg"
 )
 
 const NameTransform2D = "Transform2D"
 
 type Transform2D struct {
-	prevX float64
-	prevY float64
-	X     float64
-	Y     float64
-	mu    lock.SpinLock
+	prevPos linalg.Vector2f64
+	Pos     linalg.Vector2f64
+	mu      lock.SpinLock
 }
 
 func NewTransform2D() *Transform2D {
@@ -28,29 +27,28 @@ func (tf *Transform2D) GetName() string {
 // ===== PUBLIC METHOD =====
 
 func (tf *Transform2D) GetPrevX() float64 {
-	return tf.prevX
+	return tf.prevPos.X
 }
 
 func (tf *Transform2D) GetPrevY() float64 {
-	return tf.prevY
+	return tf.prevPos.Y
 }
 
 // MemXY memorizes X, Y postion to prevX, prevY.
 func (tf *Transform2D) MemXY() {
-	tf.prevX = tf.X
-	tf.prevY = tf.Y
+	tf.prevPos = tf.Pos
 }
 
 // Transalte a delta distance.
 func (tf *Transform2D) Translate(x float64, y float64) {
-	tf.X += x
-	tf.Y += y
+	tf.Pos.X += x
+	tf.Pos.Y += y
 }
 
 // Teleport to a given location.
 func (tf *Transform2D) Teleport(x float64, y float64) {
-	tf.X = x
-	tf.Y = y
+	tf.Pos.X = x
+	tf.Pos.Y = y
 }
 
 // ===== LOCK METHODS =====

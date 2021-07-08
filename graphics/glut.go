@@ -30,6 +30,15 @@ func GLNewShader(name string, shader uint32, vao uint32, attr func(program uint3
 	return s
 }
 
+func GLEnableWireframe() {
+	gl.PolygonMode(gl.FRONT_AND_BACK, gl.LINE)
+
+}
+
+func GLDisableWireFrame() {
+	gl.PolygonMode(gl.FRONT_AND_BACK, gl.FILL)
+}
+
 // GLActivateTexture uses texture for following drawings.
 func GLActivateTexture(texture uint32) {
 	gl.ActiveTexture(gl.TEXTURE0)

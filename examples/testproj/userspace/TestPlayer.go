@@ -12,9 +12,11 @@ import (
 	"galaxyzeta.io/engine/ecs/component"
 	"galaxyzeta.io/engine/ecs/system"
 	"galaxyzeta.io/engine/graphics"
+	"galaxyzeta.io/engine/infra/logger"
 	"galaxyzeta.io/engine/input"
 	"galaxyzeta.io/engine/input/keys"
 	"galaxyzeta.io/engine/linalg"
+	"galaxyzeta.io/engine/physics"
 	"galaxyzeta.io/engine/sdk"
 )
 
@@ -22,30 +24,43 @@ import (
 // It illustrates how to use Galaxy2DEngine.
 type TestPlayer struct {
 	*base.GameObject2D
-	tf *component.Transform2D
-	rb *component.RigidBody2D
+	tf     *component.Transform2D
+	rb     *component.RigidBody2D
+	pc     *component.PolygonCollider
+	logger *logger.Logger
 }
 
 //TestPlayer_OnCreate is a public constructor.
 func TestPlayer_OnCreate() base.IGameObject2D {
 	fmt.Println("SDK Call onCreate")
-	gameObject2D := base.NewGameObject2D().
+
+	this := &TestPlayer{}
+
+	spr := graphics.NewSpriteInstance("spr_megaman")
+	this.tf = component.NewTransform2D()
+	this.rb = component.NewRigidBody2D()
+	this.pc = component.NewPolygonCollider(spr.GetHitbox(&this.tf.Pos, physics.Pivot{
+		Option: physics.PivotOption_TopLeft,
+	}), this)
+	this.GameObject2D = base.NewGameObject2D().
 		RegisterRender(__TestPlayer_OnRender).
 		RegisterStep(__TestPlayer_OnStep).
 		RegisterDestroy(__TestPlayer_OnDestroy).
-		RegisterComponentIfAbsent(component.NewTransform2D()).
-		RegisterComponentIfAbsent(component.NewRigidBody2D())
-	gameObject2D.Sprite = graphics.NewSpriteInstance("spr_megaman")
-	ret := &TestPlayer{
-		GameObject2D: gameObject2D,
-		tf:           gameObject2D.GetComponent(component.NameTransform2D).(*component.Transform2D),
-		rb:           gameObject2D.GetComponent(component.NameRigidBody2D).(*component.RigidBody2D),
-	}
+		RegisterComponentIfAbsent(this.tf).
+		RegisterComponentIfAbsent(this.rb).
+		RegisterComponentIfAbsent(this.pc)
+	this.GameObject2D.Sprite = spr
+
 	// Enable gravity
-	ret.rb.UseGravity = true
-	ret.rb.SetGravity(270, 0.001)
-	core.SubscribeSystem(ret, system.NamePhysics2DSystem)
-	return ret
+	this.rb.UseGravity = true
+	this.rb.SetGravity(270, 0.001)
+
+	this.logger = logger.New("Player")
+
+	core.SubscribeSystem(this, system.NamePhysics2DSystem)
+	core.SubscribeSystem(this, system.NameCollision2Dsystem)
+
+	return this
 }
 
 //__TestPlayer_OnStep is intentionally names with two underlines,
@@ -77,13 +92,15 @@ func __TestPlayer_OnStep(obj base.IGameObject2D) {
 
 func __TestPlayer_OnRender(obj base.IGameObject2D) {
 	this := obj.(*TestPlayer)
-	this.Sprite.Render(sdk.GetCamera(0), linalg.Point2f64{X: this.tf.X, Y: this.tf.Y})
+	this.Sprite.Render(sdk.GetCamera(), linalg.Point2f64(this.tf.Pos))
+	// this.Sprite.RenderWire(sdk.GetCamera(0), linalg.Point2f64(this.tf.Pos), linalg.NewRgbaF64(1, 0, 0, 1))
+	// graphics.DrawRectangle(this.pc.Collider.GetBoundingBox().ToRectangle(), linalg.NewRgbaF64(1, 0, 0, 1))
+	graphics.DrawRectangle(this.pc.Collider.GetBoundingBox().ToRectangle(), linalg.NewRgbaF64(1, 0, 0, 1))
+
 }
 
 func __TestPlayer_OnDestroy(obj base.IGameObject2D) {
-	// this := obj.(*TestInputDetection)
 	fmt.Println("SDK Call onDestroy cb")
-
 	sdk.Exit()
 }
 

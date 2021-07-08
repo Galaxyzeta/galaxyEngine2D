@@ -12,6 +12,7 @@ import (
 	"galaxyzeta.io/engine/graphics"
 
 	cc "galaxyzeta.io/engine/infra/concurrency"
+	"galaxyzeta.io/engine/infra/logger"
 	"galaxyzeta.io/engine/linalg"
 )
 
@@ -27,6 +28,15 @@ const (
 	GameLoopStats_Initialized
 	GameLoopStats_Running
 )
+
+// === FOR DEBUG ===
+var systemLogger = logger.New("System")
+var avg float64 = 0
+var counter = 0
+
+func init() {
+	systemLogger.Enable()
+}
 
 // AppConfig stores all user defined configs.
 type AppConfig struct {
@@ -88,6 +98,7 @@ func NewApplication(cfg *AppConfig) *Application {
 	}
 
 	graphics.SetScreenResolution(cfg.Resolution.X, cfg.Resolution.Y)
+	graphics.InitCameraPool()
 
 	return app
 }
@@ -169,13 +180,15 @@ func (g *Application) doRender() {
 
 	renderSortList = renderSortList[:0]
 
-	mutexList[Mutex_ActivePool].RLock()
-	for _, pool := range activePool {
+	mutexList[Mutex_ActivePool].Lock()
+	activePoolReplica := poolMapReplica(activePool)
+	mutexList[Mutex_ActivePool].Unlock()
+
+	for _, pool := range activePoolReplica {
 		for elem := range pool {
 			renderSortList = append(renderSortList, elem.GetGameObject2D())
 		}
 	}
-	mutexList[Mutex_ActivePool].RUnlock()
 
 	// sort by z from far to near
 	sort.Slice(renderSortList, func(i, j int) bool {
@@ -188,6 +201,7 @@ func (g *Application) doRender() {
 
 func (g *Application) doPhysicalUpdate() {
 	watchdog := time.Now()
+
 	// 1. check whether there are items to create
 	for len(g.registerChannel) > 0 {
 		req := <-g.registerChannel
@@ -200,7 +214,10 @@ func (g *Application) doPhysicalUpdate() {
 		}
 	}
 	// 3. do user steps
-	for _, pool := range activePool {
+	mutexList[Mutex_ActivePool].Lock()
+	activePoolReplica := poolMapReplica(activePool)
+	mutexList[Mutex_ActivePool].Unlock()
+	for _, pool := range activePoolReplica {
 		for iobj2d, _ := range pool {
 			iobj2d.GetGameObject2D().Callbacks.OnStep(iobj2d)
 			iobj2d.GetGameObject2D().Sprite.DoFrameStep()
@@ -214,15 +231,23 @@ func (g *Application) doPhysicalUpdate() {
 		removeObjDefault(req.payload, req.payload.GetGameObject2D().IsActive)
 	}
 	// 6. memorize current step
-	for _, pool := range activePool {
+	for _, pool := range activePoolReplica {
 		for iobj2d, _ := range pool {
 			tf := iobj2d.GetGameObject2D().GetComponent(component.NameTransform2D).(*component.Transform2D)
 			tf.MemXY()
 		}
 	}
+
+	// ==== DEBUG ====
 	elapsed := time.Since(watchdog)
+	counter++
+	avg += float64(elapsed)
+	if counter == 120 {
+		systemLogger.Infof("Average Frame time elpased: %f ms", avg/120/1000/1000)
+		counter = 0
+		avg = 0
+	}
 	if elapsed > time.Second/time.Duration(app.physicalFPS) {
-		fmt.Println("WARNING: slow frame detected")
-		fmt.Println(elapsed)
+		systemLogger.Warnf("WARNING: slow frame detected: %d", elapsed)
 	}
 }

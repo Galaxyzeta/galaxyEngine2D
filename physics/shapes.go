@@ -29,7 +29,7 @@ type Circle struct {
 	Percision int
 }
 
-func NewRectangle(w float64, h float64, left float64, top float64) Rectangle {
+func NewRectangle(left float64, top float64, w float64, h float64) Rectangle {
 	return Rectangle{
 		Width:  w,
 		Height: h,
@@ -46,12 +46,29 @@ func (rect Rectangle) Intersect(shape IShape) bool {
 	return false
 }
 
+func (rect Rectangle) InsideRectangle(anotherRect *Rectangle) bool {
+	anotherRight := anotherRect.Left + anotherRect.Width
+	anotherBottom := anotherRect.Top + anotherRect.Height
+	thisRight := rect.Left + rect.Width
+	thisBottom := rect.Top + rect.Height
+	return rect.Left >= anotherRect.Left && thisRight <= anotherRight && rect.Top <= anotherRect.Top && thisBottom >= anotherBottom
+}
+
 func (rect Rectangle) IntersectWithRectangle(anotherRect *Rectangle) bool {
 	anotherRight := anotherRect.Left + anotherRect.Width
 	anotherBottom := anotherRect.Top + anotherRect.Height
 	thisRight := rect.Left + rect.Width
 	thisBottom := rect.Top + rect.Height
-	return thisRight >= anotherRect.Left && rect.Left <= anotherRight && rect.Top >= anotherBottom && thisBottom <= anotherRect.Top
+	return thisRight >= anotherRect.Left && rect.Left <= anotherRight && rect.Top <= anotherBottom && thisBottom >= anotherRect.Top
+}
+
+// CropOutside extends or deminishes current rectangle by certain width and height.
+func (rect Rectangle) CropOutside(w float64, h float64) Rectangle {
+	rect.Height += h + h
+	rect.Width += w + w
+	rect.Left -= w
+	rect.Top -= w
+	return rect
 }
 
 // ToPolygon converts a circle into polygon.

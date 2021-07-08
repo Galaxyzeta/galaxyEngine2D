@@ -9,6 +9,11 @@ import (
 var spriteMetaMap map[string]SpriteMeta
 var frameMap map[string]*GLFrame
 var shaderMap map[string]*Shader
+var vboManager *vboPool
+var cameraPool []*Camera
+
+var currentCamera int
+
 var screenResolution *linalg.Vector2f64 = &linalg.Vector2f64{}
 
 var mutexList []sync.RWMutex
@@ -55,4 +60,24 @@ func GetFrame(name string) *GLFrame {
 		panic("sprite not found !")
 	}
 	return frm
+}
+
+func GetCurrentCamera() *Camera {
+	return cameraPool[currentCamera]
+}
+
+// InitCameraPool inits camera pool. It will be called by core. Do not use this in ypur game logic.
+func InitCameraPool() {
+	// init camera list
+	cameraPool = make([]*Camera, 1, 4)
+	cameraPool[0] = &Camera{
+		Pos: linalg.Point2f64{
+			X: 0,
+			Y: 0,
+		},
+		Resolution: linalg.Vector2f64{
+			X: 640,
+			Y: 480,
+		},
+	}
 }

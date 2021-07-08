@@ -9,6 +9,13 @@ type Rgba struct {
 	W uint32
 }
 
+type RgbaF64 struct {
+	X float64
+	Y float64
+	Z float64
+	W float64
+}
+
 type Vector2f64 struct {
 	X float64
 	Y float64
@@ -43,6 +50,19 @@ type Point2f32 Vector2f32
 type Point2f64 Vector2f64
 type Point2i64 Vector2i64
 type Point2i Vector2i
+
+func NewRgbaF64(r float64, g float64, b float64, a float64) RgbaF64 {
+	return RgbaF64{
+		X: r,
+		Y: g,
+		Z: b,
+		W: a,
+	}
+}
+
+func NewVector2f64(x float64, y float64) Vector2f64 {
+	return Vector2f64{X: x, Y: y}
+}
 
 func (vec1 Vector2f64) Add(vec2 Vector2f64) Vector2f64 {
 	return Vector2f64{vec1.X + vec2.X, vec1.Y + vec2.Y}

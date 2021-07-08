@@ -69,6 +69,6 @@ func Deactivate(iobj base.IGameObject2D) bool {
 	return core.Deactivate(iobj)
 }
 
-func GetCamera(idx int) *graphics.Camera {
-	return core.GetCamera(idx)
+func GetCamera() *graphics.Camera {
+	return graphics.GetCurrentCamera()
 }
