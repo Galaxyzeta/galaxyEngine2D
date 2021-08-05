@@ -38,7 +38,7 @@ func TestBlock_OnCreate() base.IGameObject2D {
 		Option: physics.PivotOption_TopLeft,
 	}), this)
 
-	gameObject2D := base.NewGameObject2D().
+	gameObject2D := base.NewGameObject2D("block").
 		RegisterRender(__TestBlock_OnRender).
 		RegisterStep(constdef.DefaultGameFunction).
 		RegisterDestroy(constdef.DefaultGameFunction).
@@ -47,6 +47,8 @@ func TestBlock_OnCreate() base.IGameObject2D {
 	gameObject2D.Sprite = spr
 	gameObject2D.Sprite.DisableAnimation()
 	gameObject2D.Sprite.Z = 10
+
+	gameObject2D.AppendTags("solid")
 
 	this.GameObject2D = gameObject2D
 

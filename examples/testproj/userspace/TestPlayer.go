@@ -6,11 +6,13 @@ package objs
 
 import (
 	"fmt"
+	"time"
 
 	"galaxyzeta.io/engine/base"
 	"galaxyzeta.io/engine/core"
 	"galaxyzeta.io/engine/ecs/component"
 	"galaxyzeta.io/engine/ecs/system"
+	"galaxyzeta.io/engine/ecs/system/collision"
 	"galaxyzeta.io/engine/graphics"
 	"galaxyzeta.io/engine/infra/logger"
 	"galaxyzeta.io/engine/input"
@@ -23,11 +25,20 @@ import (
 // TestPlayer is a golang GameObject2D testing template,
 // It illustrates how to use Galaxy2DEngine.
 type TestPlayer struct {
+	// -- must require
 	*base.GameObject2D
+
+	// -- system requirement
 	tf     *component.Transform2D
 	rb     *component.RigidBody2D
 	pc     *component.PolygonCollider
+	csys   collision.ICollisionSystem
 	logger *logger.Logger
+
+	// -- user defined
+	canJump            bool          // whether the user can jump or not
+	lastJumpTime       time.Time     // last player jump time
+	jumpPreventionTime time.Duration // stop the user from operating a jump in this duration
 }
 
 //TestPlayer_OnCreate is a public constructor.
@@ -42,7 +53,7 @@ func TestPlayer_OnCreate() base.IGameObject2D {
 	this.pc = component.NewPolygonCollider(spr.GetHitbox(&this.tf.Pos, physics.Pivot{
 		Option: physics.PivotOption_TopLeft,
 	}), this)
-	this.GameObject2D = base.NewGameObject2D().
+	this.GameObject2D = base.NewGameObject2D("player").
 		RegisterRender(__TestPlayer_OnRender).
 		RegisterStep(__TestPlayer_OnStep).
 		RegisterDestroy(__TestPlayer_OnDestroy).
@@ -53,12 +64,16 @@ func TestPlayer_OnCreate() base.IGameObject2D {
 
 	// Enable gravity
 	this.rb.UseGravity = true
-	this.rb.SetGravity(270, 0.001)
+	this.rb.SetGravity(270, 0.02)
 
 	this.logger = logger.New("Player")
+	this.csys = core.GetSystem(system.NameCollision2Dsystem).(collision.ICollisionSystem)
 
 	core.SubscribeSystem(this, system.NamePhysics2DSystem)
 	core.SubscribeSystem(this, system.NameCollision2Dsystem)
+
+	this.jumpPreventionTime = time.Millisecond * 50
+	this.lastJumpTime = time.Now()
 
 	return this
 }
@@ -69,34 +84,58 @@ func TestPlayer_OnCreate() base.IGameObject2D {
 func __TestPlayer_OnStep(obj base.IGameObject2D) {
 	this := obj.(*TestPlayer)
 	isKeyHeld := false
-	if input.IsKeyHeld(keys.KeyW) {
-		this.tf.Translate(0, -1)
-		isKeyHeld = true
-	} else if input.IsKeyHeld(keys.KeyS) {
-		this.tf.Translate(0, 1)
-		isKeyHeld = true
-	}
+	var dx float64 = 0
+	var dy float64 = 0
+
+	// movement
 	if input.IsKeyHeld(keys.KeyA) {
-		this.tf.Translate(-1, 0)
+		dx = -1
 		isKeyHeld = true
 	} else if input.IsKeyHeld(keys.KeyD) {
-		this.tf.Translate(1, 0)
+		dx = 1
 		isKeyHeld = true
 	}
+
+	// jump
+	if input.IsKeyPressed(keys.KeyW) && this.canJump && time.Since(this.lastJumpTime) > this.jumpPreventionTime {
+		this.canJump = false
+		this.lastJumpTime = time.Now()
+		this.rb.AddForce(component.SpeedVector{
+			Acceleration: 0.05,
+			Direction:    90,
+			Speed:        3,
+		})
+	}
+
 	if isKeyHeld {
 		this.Sprite.EnableAnimation()
 	} else {
 		this.Sprite.DisableAnimation()
+	}
+
+	this.tf.Translate(dx, dy)
+
+	bb := this.pc.Collider.GetBoundingBox()
+	bot := bb[physics.BB_BotLeft]
+	if val := collision.ColliderAtWithTag(this.csys, "solid", bot); val != nil {
+		if time.Since(this.lastJumpTime) > this.jumpPreventionTime {
+			this.rb.UseGravity = false
+			this.rb.GravityVector.Speed = 0
+			this.canJump = true
+		}
+		// stick to the surface, do some trajetory correction
+		thisY := this.pc.Collider.GetBoundingBox().GetBottomLeftPoint().Y
+		colliderY := val.Collider.GetBoundingBox().GetTopLeftPoint().Y
+		this.tf.Pos.Y += (colliderY - thisY)
+	} else {
+		this.rb.UseGravity = true
 	}
 }
 
 func __TestPlayer_OnRender(obj base.IGameObject2D) {
 	this := obj.(*TestPlayer)
 	this.Sprite.Render(sdk.GetCamera(), linalg.Point2f64(this.tf.Pos))
-	// this.Sprite.RenderWire(sdk.GetCamera(0), linalg.Point2f64(this.tf.Pos), linalg.NewRgbaF64(1, 0, 0, 1))
-	// graphics.DrawRectangle(this.pc.Collider.GetBoundingBox().ToRectangle(), linalg.NewRgbaF64(1, 0, 0, 1))
 	graphics.DrawRectangle(this.pc.Collider.GetBoundingBox().ToRectangle(), linalg.NewRgbaF64(1, 0, 0, 1))
-
 }
 
 func __TestPlayer_OnDestroy(obj base.IGameObject2D) {

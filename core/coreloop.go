@@ -113,19 +113,16 @@ func (app *Application) Start() {
 	window := InitOpenGL(graphics.GetScreenResolution(), title)
 	app.initFunc()
 
+	// bootup executor
 	app.executor.Run()
+
 	go app.runWorkerLoop()
 
 	app.running = true
 	app.status = GameLoopStats_Running
 
-	// bootup executor
-	app.executor.Run()
-
 	// --- begin render infinite loop
-	app.wg.Add(1)
 	RenderLoop(window, app.doRender, app.sigKill)
-	app.wg.Done()
 	// --- infinite loop has stopped, maybe sigkill or something else
 }
 

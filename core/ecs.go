@@ -49,3 +49,10 @@ func SubscribeSystem(iobj base.IGameObject2D, sysname string) {
 func UnsubscribeSystem(iobj base.IGameObject2D, sysname string) {
 	name2System[sysname].Unregister(iobj)
 }
+
+func GetSystem(sysname string) base.ISystem {
+	mu := GetRWMutex(Mutex_System)
+	mu.RLock()
+	defer mu.RUnlock()
+	return name2System[sysname]
+}

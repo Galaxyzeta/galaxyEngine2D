@@ -22,14 +22,14 @@ func GlobalInitializer() {
 	objPoolInit(&inactivePool)
 
 	// init mutexList
-	mutexList = make([]*sync.RWMutex, 8)
+	mutexList = make([]*sync.RWMutex, 16)
 	for idx := range mutexList {
 		mutexList[idx] = &sync.RWMutex{}
 	}
 
 	// init casList
 	casList = make([]int32, 8)
-	for idx := range mutexList {
+	for idx := range casList {
 		casList[idx] = Cas_False
 	}
 

@@ -59,6 +59,7 @@ const (
 	Mutex_Keyboard_Released
 	Mutex_ActivePool
 	Mutex_InactivePool
+	Mutex_System
 )
 
 var mutexList []*sync.RWMutex

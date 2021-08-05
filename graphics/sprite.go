@@ -147,10 +147,10 @@ func (spr *SpriteInstance) GetHitbox(anchor *linalg.Vector2f64, pivot physics.Pi
 	f64w := float64(maxWidth)
 	f64h := float64(maxHeight)
 	retVert := []linalg.Vector2f64{
+		linalg.NewVector2f64(0, f64w),
 		linalg.NewVector2f64(0, 0),
-		linalg.NewVector2f64(0, f64h),
-		linalg.NewVector2f64(f64w, f64h),
-		linalg.NewVector2f64(f64w, 0),
+		linalg.NewVector2f64(f64h, 0),
+		linalg.NewVector2f64(f64h, f64w),
 	}
 	// get pivot point
 	var pivotPoint linalg.Vector2f64

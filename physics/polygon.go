@@ -25,6 +25,16 @@ func NewPolygon(anchor *linalg.Vector2f64, pivot linalg.Vector2f64, deg float64,
 	return ret
 }
 
+func NewStaticPolygon(pivot linalg.Vector2f64, deg float64, vertices []linalg.Vector2f64) *Polygon {
+	ret := &Polygon{
+		vertices:    vertices,
+		pivot:       pivot,
+		rotationDeg: deg,
+	}
+	ret.boundingBox = ret.GetBoundingBox()
+	return ret
+}
+
 func (poly Polygon) GetAnchor() *linalg.Vector2f64 {
 	return poly.anchor
 }
@@ -34,9 +44,15 @@ func (poly Polygon) GetWorldVertices() []linalg.Vector2f64 {
 	verticesReplica := make([]linalg.Vector2f64, len(poly.vertices))
 	copy(verticesReplica[:], poly.vertices)
 	rotRad := linalg.Deg2Rad(poly.rotationDeg)
+	var anchorX float64 = 0
+	var anchorY float64 = 0
+	if poly.anchor != nil {
+		anchorX = poly.anchor.X
+		anchorY = poly.anchor.Y
+	}
 	for idx, vertice := range verticesReplica {
-		x := (vertice.X-poly.pivot.X)*math.Cos(rotRad) - (vertice.Y-poly.pivot.Y)*math.Sin(rotRad) + poly.anchor.X
-		y := (vertice.X-poly.pivot.X)*math.Sin(rotRad) - (vertice.Y-poly.pivot.Y)*math.Cos(rotRad) + poly.anchor.Y
+		x := (vertice.X-poly.pivot.X)*math.Cos(rotRad) - (vertice.Y-poly.pivot.Y)*math.Sin(rotRad) + anchorX
+		y := (vertice.X-poly.pivot.X)*math.Sin(rotRad) + (vertice.Y-poly.pivot.Y)*math.Cos(rotRad) + anchorY
 		verticesReplica[idx].X = x
 		verticesReplica[idx].Y = y
 	}
@@ -46,6 +62,7 @@ func (poly Polygon) GetWorldVertices() []linalg.Vector2f64 {
 // Intersect checks whether two polygons overlaps with eachother.
 func (poly Polygon) Intersect(poly2 Polygon) bool {
 	vertices := poly.GetWorldVertices()
+	vertices2 := poly2.GetWorldVertices()
 	for i := 1; i < len(vertices); i++ {
 		edgeVec := linalg.Vector2f64{X: vertices[i].X - vertices[i-1].X, Y: vertices[i].Y - vertices[i-1].Y}
 		axis := edgeVec.NormalVec()
@@ -55,8 +72,8 @@ func (poly Polygon) Intersect(poly2 Polygon) bool {
 			return false
 		}
 	}
-	for i := 1; i < len(vertices); i++ {
-		edgeVec := linalg.Vector2f64{X: vertices[i].X - vertices[i-1].X, Y: vertices[i].Y - vertices[i-1].Y}
+	for i := 1; i < len(vertices2); i++ {
+		edgeVec := linalg.Vector2f64{X: vertices2[i].X - vertices2[i-1].X, Y: vertices2[i].Y - vertices2[i-1].Y}
 		axis := edgeVec.NormalVec()
 		seg0 := poly2.ProjectOn(axis)
 		seg1 := poly.ProjectOn(axis)

@@ -18,6 +18,22 @@ func (bb BoundingBox) ToRectangle() Rectangle {
 	}
 }
 
+func (bb BoundingBox) GetBottomLeftPoint() linalg.Vector2f64 {
+	return bb[BB_BotLeft]
+}
+
+func (bb BoundingBox) GetBottomRightPoint() linalg.Vector2f64 {
+	return bb[BB_BotRight]
+}
+
+func (bb BoundingBox) GetTopLeftPoint() linalg.Vector2f64 {
+	return bb[BB_TopLeft]
+}
+
+func (bb BoundingBox) GetTopRightPoint() linalg.Vector2f64 {
+	return bb[BB_TopRight]
+}
+
 func SliceToBoundingBox(vecSlice []linalg.Vector2f64) BoundingBox {
 	array := [4]linalg.Vector2f64{}
 	copy(array[:], vecSlice)

@@ -137,6 +137,7 @@ func GetCwd() string {
 	return cwd
 }
 
+// poolMapReplica
 func poolMapReplica(orig map[label]objPool) (ret map[label]objPool) {
 	ret = make(map[label]objPool, len(orig))
 	for k, v := range orig {
@@ -145,6 +146,7 @@ func poolMapReplica(orig map[label]objPool) (ret map[label]objPool) {
 	return
 }
 
+// poolReplica replicates a objPool. Not thread safe.
 func poolReplica(p objPool) (ret objPool) {
 	ret = make(objPool, len(p))
 	for k, v := range p {
