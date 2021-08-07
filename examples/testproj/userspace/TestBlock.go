@@ -62,7 +62,7 @@ func __TestBlock_OnRender(obj base.IGameObject2D) {
 	this := obj.(*TestBlock)
 	this.Sprite.Render(sdk.GetCamera(), linalg.Point2f64(this.tf.Pos))
 
-	this.Sprite.RenderWire(sdk.GetCamera(), linalg.Point2f64(this.tf.Pos), linalg.NewRgbaF64(1, 0, 0, 1))
+	// this.Sprite.RenderWire(sdk.GetCamera(), linalg.Point2f64(this.tf.Pos), linalg.NewRgbaF64(1, 0, 0, 1))
 }
 
 // GetGameObject2D implements IGameObject2D.

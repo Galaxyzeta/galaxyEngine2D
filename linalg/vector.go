@@ -41,11 +41,6 @@ type Vector2i struct {
 	Y int
 }
 
-type Segmentf64 struct {
-	Point1 Vector2f64
-	Point2 Vector2f64
-}
-
 type Point2f32 Vector2f32
 type Point2f64 Vector2f64
 type Point2i64 Vector2i64
@@ -74,6 +69,22 @@ func (vec1 Vector2f64) Sub(vec2 Vector2f64) Vector2f64 {
 
 func (vec1 Vector2f64) Dot(vec2 Vector2f64) float64 {
 	return vec1.X*vec2.X + vec1.Y*vec2.Y
+}
+
+// Theta calculate the degree between 2 vectors.
+// The return value is represented in radian.
+func (vec1 Vector2f64) Theta(vec2 Vector2f64) float64 {
+	return math.Acos(vec1.Dot(vec2) / (vec1.Magnitude() * vec2.Magnitude()))
+}
+
+// Theta calculate the degree between 2 vectors.
+// The return value is represented in degree.
+func (vec1 Vector2f64) ThetaDeg(vec2 Vector2f64) float64 {
+	return Rad2Deg(vec1.Theta(vec2))
+}
+
+func (vec1 Vector2f64) Mult(vec2 Vector2f64) float64 {
+	return vec1.X*vec2.Y - vec2.X*vec1.Y
 }
 
 func (vec1 Vector2f64) Magnitude() float64 {

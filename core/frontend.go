@@ -124,7 +124,6 @@ func RenderLoop(window *glfw.Window, renderFunc func(), sigKill <-chan struct{})
 
 		// ---- render ----
 		renderFunc()
-		//testRender()
 		// ---- render ----
 
 		window.SwapBuffers()

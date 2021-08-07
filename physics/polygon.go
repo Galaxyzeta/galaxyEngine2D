@@ -9,7 +9,6 @@ import (
 type Polygon struct {
 	anchor      *linalg.Vector2f64  // anchor is a base point where all world position was calculated on
 	vertices    []linalg.Vector2f64 // original vertices with no rotation
-	boundingBox BoundingBox
 	pivot       linalg.Vector2f64
 	rotationDeg float64
 }
@@ -21,7 +20,6 @@ func NewPolygon(anchor *linalg.Vector2f64, pivot linalg.Vector2f64, deg float64,
 		pivot:       pivot,
 		rotationDeg: deg,
 	}
-	ret.boundingBox = ret.GetBoundingBox()
 	return ret
 }
 
@@ -31,7 +29,6 @@ func NewStaticPolygon(pivot linalg.Vector2f64, deg float64, vertices []linalg.Ve
 		pivot:       pivot,
 		rotationDeg: deg,
 	}
-	ret.boundingBox = ret.GetBoundingBox()
 	return ret
 }
 

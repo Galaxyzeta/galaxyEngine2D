@@ -135,7 +135,14 @@ func __TestPlayer_OnStep(obj base.IGameObject2D) {
 func __TestPlayer_OnRender(obj base.IGameObject2D) {
 	this := obj.(*TestPlayer)
 	this.Sprite.Render(sdk.GetCamera(), linalg.Point2f64(this.tf.Pos))
-	graphics.DrawRectangle(this.pc.Collider.GetBoundingBox().ToRectangle(), linalg.NewRgbaF64(1, 0, 0, 1))
+	for i := 0; i < 20; i++ {
+		timing := time.Now()
+		graphics.DrawRectangle(this.pc.Collider.GetBoundingBox().ToRectangle(), linalg.NewRgbaF64(1, 0, 0, 1))
+		this.logger.Debugf("%v", time.Since(timing))
+	}
+	// this.csys.(*system.QuadTreeCollision2DSystem).Traverse(func(pc *component.PolygonCollider, r physics.Rectangle, qn *phy.QTreeNode) {
+	// 	graphics.DrawRectangle(pc.Collider.GetBoundingBox().ToRectangle(), linalg.NewRgbaF64(0, 0, 1, 1))
+	// })
 }
 
 func __TestPlayer_OnDestroy(obj base.IGameObject2D) {

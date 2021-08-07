@@ -53,6 +53,13 @@ func (s *QuadTreeCollision2DSystem) execute(executor *cc.Executor) {
 	}
 }
 
+// ===== debug only =====
+func (s *QuadTreeCollision2DSystem) Traverse(f func(pc *component.PolygonCollider, r physics.Rectangle, qn *collision.QTreeNode)) {
+	s.qt.Traverse(f)
+}
+
+// ===== Functional Implementation =====
+
 func (s *QuadTreeCollision2DSystem) QueryNeighborCollidersWithCollider(col component.PolygonCollider) []*component.PolygonCollider {
 	col.Collider.GetBoundingBox()
 	return s.QueryNeighborCollidersWithPosition(*col.Collider.GetAnchor())
@@ -63,23 +70,22 @@ func (s *QuadTreeCollision2DSystem) QueryNeighborCollidersWithColliderAndFilter(
 }
 
 func (s *QuadTreeCollision2DSystem) QueryNeighborCollidersWithPosition(pos linalg.Vector2f64) []*component.PolygonCollider {
-	hashset := s.qt.Query(pos)
-	var ret []*component.PolygonCollider
-	for collider := range hashset {
-		ret = append(ret, collider)
-	}
-	return ret
+	return s.qt.Query(pos)
 }
 
 func (s *QuadTreeCollision2DSystem) QueryNeighborCollidersWithPositionAndFilter(pos linalg.Vector2f64, filter func(*component.PolygonCollider) bool) []*component.PolygonCollider {
-	hashset := s.qt.Query(pos)
+	li := s.qt.Query(pos)
 	var ret []*component.PolygonCollider
-	for collider := range hashset {
+	for _, collider := range li {
 		if filter(collider) {
 			ret = append(ret, collider)
 		}
 	}
 	return ret
+}
+
+func (s *QuadTreeCollision2DSystem) QueryNeighborCollidersWithRay(r physics.Ray) {
+
 }
 
 // ===== IMPLEMENTATION =====

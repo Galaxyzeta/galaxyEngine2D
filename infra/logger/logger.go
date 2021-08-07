@@ -32,6 +32,11 @@ const (
 
 const GlobalEnabled = true
 
+var GlobalLogger Logger = Logger{
+	enable: GlobalEnabled,
+	name:   "Default",
+}
+
 // Logger is a representation of logging util.
 type Logger struct {
 	enable bool

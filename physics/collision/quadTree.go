@@ -11,6 +11,7 @@ const (
 	sector2
 	sector3
 	sector4
+	overlap = -2
 )
 
 type QuadTree struct {
@@ -26,6 +27,7 @@ type QTreeNode struct {
 	items       map[*component.PolygonCollider]struct{}
 	children    [4]*QTreeNode // points to 4 sub dimensions
 	parent      *QTreeNode
+	area        physics.Rectangle
 	minDivision float64
 	loadFactor  int  // how many items can be held at most in this node
 	hasChild    bool // marks whether should insert element into this node, or in its children nodes.
@@ -44,11 +46,12 @@ func NewQuadTree(maintainanceArea physics.Rectangle, loadFactor int, minDivision
 	}
 }
 
-func NewQTreeNode(parent *QTreeNode) *QTreeNode {
+func NewQTreeNode(parent *QTreeNode, section int) *QTreeNode {
 	return &QTreeNode{
 		items:       map[*component.PolygonCollider]struct{}{},
 		children:    [4]*QTreeNode{},
 		parent:      parent,
+		area:        boundaryDivision(parent.area, section),
 		hasChild:    false,
 		loadFactor:  parent.loadFactor,
 		minDivision: parent.minDivision,
@@ -67,7 +70,7 @@ func (qt QTreeNode) GetHasChild() bool {
 	return qt.hasChild
 }
 
-func (qt QTreeNode) SetHasChild(hasChild bool) {
+func (qt *QTreeNode) SetHasChild(hasChild bool) {
 	qt.hasChild = hasChild
 }
 
@@ -89,40 +92,44 @@ func (qt *QuadTree) Insert(collider *component.PolygonCollider) {
 			items:       map[*component.PolygonCollider]struct{}{},
 			children:    [4]*QTreeNode{},
 			parent:      nil,
+			area:        qt.area,
 			hasChild:    false,
 			loadFactor:  qt.loadFactor,
 			minDivision: qt.minDivision,
 		}
 	}
-	qt.root.doInsert(collider, qt.area)
+	qt.root.doInsert(collider)
 }
 
-func (qt *QuadTree) Query(position linalg.Vector2f64) map[*component.PolygonCollider]struct{} {
-	res, _ := qt.root.doQuery(position, qt.area)
-	return res.items
+func (qt *QuadTree) Query(position linalg.Vector2f64) []*component.PolygonCollider {
+	result := make([]*component.PolygonCollider, 0)
+	qt.root.doQuery(position, &result)
+	return result
 }
 
-func (qt *QuadTree) QueryByCollider(collider *component.PolygonCollider) map[*component.PolygonCollider]struct{} {
-	bb := collider.Collider.GetBoundingBox()
-	bbRect := bb.ToRectangle()
-	boundaries := []physics.Rectangle{}
-	cnt := 0
-	colliderSet := map[*component.PolygonCollider]struct{}{}
-	for i := 0; i < 4; i++ {
-		// if boundary already inside known, no need to search the tree again
-		for _, boundary := range boundaries {
-			if bbRect.InsideRectangle(&boundary) {
-				continue
+func (qt *QuadTree) QueryByRay(r physics.Ray) []*component.PolygonCollider {
+	result := make([]*component.PolygonCollider, 0)
+	for idx, qtnode := range qt.root.children {
+		qtnode.doQueryByRay(r, boundaryDivision(qt.area, idx), &result)
+	}
+	return result
+}
+
+func (qt *QTreeNode) doQueryByRay(r physics.Ray, area physics.Rectangle, result *[]*component.PolygonCollider) {
+	if qt == nil {
+		return
+	}
+	if r.IntersectPolygon(area.ToPolygon()) {
+		if qt.hasChild {
+			for idx, qtnode := range qt.children {
+				qtnode.doQueryByRay(r, boundaryDivision(area, idx), result)
+			}
+		} else {
+			for item, _ := range qt.items {
+				*result = append(*result, item)
 			}
 		}
-
-		node, boundary := qt.root.doQuery(bb[i], qt.area)
-		for elem := range node.items {
-			colliderSet[elem] = struct{}{}
-		}
-		boundaries[cnt] = boundary
 	}
-	return colliderSet
 }
 
 func (qt *QTreeNode) doTraverse(fn func(*component.PolygonCollider, physics.Rectangle, *QTreeNode), boundary physics.Rectangle) {
@@ -133,56 +140,83 @@ func (qt *QTreeNode) doTraverse(fn func(*component.PolygonCollider, physics.Rect
 		for i, elem := range qt.children {
 			elem.doTraverse(fn, boundaryDivision(boundary, i))
 		}
-	} else {
-		for item := range qt.items {
-			fn(item, boundary, qt)
-		}
+	}
+	for item := range qt.items {
+		fn(item, boundary, qt)
 	}
 }
 
-func (qt *QTreeNode) doQuery(position linalg.Vector2f64, boundary physics.Rectangle) (*QTreeNode, physics.Rectangle) {
-	if !qt.hasChild {
-		return qt, boundary
+func (qt *QTreeNode) doQuery(position linalg.Vector2f64, result *[]*component.PolygonCollider) {
+	if qt == nil {
+		return
 	}
-	boundaryWidthHalf := boundary.Width / 2
-	boundaryHeightHalf := boundary.Height / 2
+	// no matter it is a leaf node or not, add all is item into the result.
+	// because parental nodes stores colliders that are exactly at boundary edges.
+	for item, _ := range qt.items {
+		*result = append(*result, item)
+	}
+
+	if !qt.hasChild {
+		return
+	}
+
+	boundaryWidthHalf := qt.area.Width / 2
+	boundaryHeightHalf := qt.area.Height / 2
 	center := linalg.Vector2f64{
-		X: boundary.Left + boundaryWidthHalf,
-		Y: boundary.Width + boundaryHeightHalf,
+		X: qt.area.Left + boundaryWidthHalf,
+		Y: qt.area.Top + boundaryHeightHalf,
 	}
 	xPos := position.X > center.X
 	yPos := position.Y > center.Y
 	if xPos {
 		if yPos {
-			return qt.children[sector1].doQuery(position, physics.NewRectangle(center.X, boundary.Top, boundaryWidthHalf, boundaryHeightHalf))
+			qt.children[sector1].doQuery(position, result)
+			return
 		}
-		return qt.children[sector4].doQuery(position, physics.NewRectangle(center.X, center.Y, boundaryWidthHalf, boundaryHeightHalf))
+		qt.children[sector4].doQuery(position, result)
+		return
 	}
 	if yPos {
-		return qt.children[sector2].doQuery(position, physics.NewRectangle(boundary.Left, boundary.Top, boundaryWidthHalf, boundaryHeightHalf))
+		qt.children[sector2].doQuery(position, result)
+		return
 	}
-	return qt.children[sector3].doQuery(position, physics.NewRectangle(boundary.Left, center.Y, boundaryWidthHalf, boundaryHeightHalf))
+	qt.children[sector3].doQuery(position, result)
 }
 
-func (qt *QTreeNode) doInsert(collider *component.PolygonCollider, boundary physics.Rectangle) {
+func (qt *QTreeNode) doInsert(collider *component.PolygonCollider) {
 	if qt == nil {
 		return
 	}
 	if !qt.hasChild {
 		qt.items[collider] = struct{}{}
 		if len(qt.items) > qt.loadFactor {
-			if boundary.Height > qt.minDivision && boundary.Width > qt.minDivision {
+			if qt.area.Height > qt.minDivision && qt.area.Width > qt.minDivision {
 				qt.hasChild = true
 				// split
 				for item := range qt.items {
 					delete(qt.items, item)
-					qt.insertIntoChild0(item, boundary)
+					qt.insertIntoChild0(item)
 				}
 			}
 		}
 		return
 	}
-	qt.insertIntoChild0(collider, boundary)
+	qt.insertIntoChild0(collider)
+}
+
+func (qt *QTreeNode) insertIntoChild0(collider *component.PolygonCollider) {
+
+	whichSection := getIntersectedSection(collider.Collider.GetBoundingBox(), qt.area)
+	if whichSection == -2 {
+		// overlap, insert into current node
+		qt.items[collider] = struct{}{}
+	} else {
+		// normal insert, no overlap, insert into children
+		if qt.children[whichSection] == nil {
+			qt.children[whichSection] = NewQTreeNode(qt, whichSection)
+		}
+		qt.children[whichSection].doInsert(collider)
+	}
 }
 
 func boundaryDivision(boundary physics.Rectangle, sector int) physics.Rectangle {
@@ -201,8 +235,9 @@ func boundaryDivision(boundary physics.Rectangle, sector int) physics.Rectangle 
 	panic("unknown sector index")
 }
 
-func (qt *QTreeNode) insertIntoChild0(collider *component.PolygonCollider, boundary physics.Rectangle) {
-	bb := collider.Collider.GetBoundingBox()
+// getIntersectedSection returns which section does the given boundary box intersect with after dividing
+// a parent boundary into four child boundaries.
+func getIntersectedSection(bb physics.BoundingBox, boundary physics.Rectangle) int {
 	boundaryWidthHalf := boundary.Width / 2
 	boundaryHeightHalf := boundary.Height / 2
 	center := linalg.Vector2f64{
@@ -215,27 +250,32 @@ func (qt *QTreeNode) insertIntoChild0(collider *component.PolygonCollider, bound
 		yPos := bb[i].Y > center.Y
 		if xPos {
 			if yPos {
-				qt.insertIntoChild1(collider, sector1, boundaryDivision(boundary, sector1), &insertedFlag)
-				return
+				insertedFlag[sector1] = true
+				continue
 			}
-			qt.insertIntoChild1(collider, sector4, boundaryDivision(boundary, sector4), &insertedFlag)
-			return
+			insertedFlag[sector4] = true
+			continue
 		}
 		if yPos {
-			qt.insertIntoChild1(collider, sector2, boundaryDivision(boundary, sector2), &insertedFlag)
-			return
+			insertedFlag[sector2] = true
+			continue
 		}
-		qt.insertIntoChild1(collider, sector3, boundaryDivision(boundary, sector3), &insertedFlag)
+		insertedFlag[sector3] = true
 	}
-}
 
-func (qt *QTreeNode) insertIntoChild1(collider *component.PolygonCollider, sector int, rect physics.Rectangle, insertedFlag *[4]bool) {
-	if insertedFlag[sector] {
-		return
+	whichSection := -1
+	for idx, section := range insertedFlag {
+		if section {
+			if whichSection == -1 {
+				whichSection = idx
+			} else {
+				whichSection = -2
+				break
+			}
+		}
 	}
-	insertedFlag[sector] = true
-	if qt.children[sector] == nil {
-		qt.children[sector] = NewQTreeNode(qt) // decrease loadFactor
+	if whichSection == -1 {
+		panic("failed to insert")
 	}
-	qt.children[sector].doInsert(collider, rect)
+	return whichSection
 }

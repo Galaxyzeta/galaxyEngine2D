@@ -1,7 +1,6 @@
 package collision
 
 import (
-	"fmt"
 	"testing"
 
 	"galaxyzeta.io/engine/ecs/component"
@@ -15,8 +14,11 @@ func TestInsertIntoQuadTree(t *testing.T) {
 	vertices := [4]linalg.Vector2f64{
 		{X: -1, Y: 1}, {X: 1, Y: 1}, {X: 1, Y: -1}, {X: -1, Y: -1},
 	}
-	for i := -128.0; i < 128; i += 64 {
-		for j := -128.0; j < 128; j += 64 {
+	cnt := 0
+	for i := -128.0; i < 128; i += 70 {
+		for j := -128.0; j < 128; j += 70 {
+			t.Log(i, j)
+			cnt++
 			qt.Insert(&component.PolygonCollider{
 				Collider: *physics.NewPolygon(&linalg.Vector2f64{X: i, Y: j},
 					pivot, 0, vertices[:]),
@@ -24,6 +26,25 @@ func TestInsertIntoQuadTree(t *testing.T) {
 		}
 	}
 	qt.Traverse(func(pc *component.PolygonCollider, r physics.Rectangle, node *QTreeNode) {
-		fmt.Println(pc.Collider.GetBoundingBox(), node)
+		cnt--
+		t.Log(pc.Collider.GetBoundingBox(), node)
 	})
+	t.Log(cnt)
+
+	t.Log("Q1==============")
+	for _, elem := range qt.Query(linalg.NewVector2f64(1, 1)) {
+		t.Log(elem.Collider.GetWorldVertices())
+	}
+	t.Log("Q2==============")
+	for _, elem := range qt.Query(linalg.NewVector2f64(-1, 1)) {
+		t.Log(elem.Collider.GetWorldVertices())
+	}
+	t.Log("Q3==============")
+	for _, elem := range qt.Query(linalg.NewVector2f64(-1, -1)) {
+		t.Log(elem.Collider.GetWorldVertices())
+	}
+	t.Log("Q4==============")
+	for _, elem := range qt.Query(linalg.NewVector2f64(1, -1)) {
+		t.Log(elem.Collider.GetWorldVertices())
+	}
 }

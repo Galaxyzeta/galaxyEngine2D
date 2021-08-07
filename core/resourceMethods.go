@@ -9,12 +9,17 @@ import (
 
 func addObjDefault(obj base.IGameObject2D, isActive bool) {
 	var targetPool map[label]objPool
+	var muEnum MutexIndex
 	if isActive {
 		targetPool = activePool
+		muEnum = Mutex_ActivePool
 	} else {
 		targetPool = inactivePool
+		muEnum = Mutex_InactivePool
 	}
+	mutexList[muEnum].Lock()
 	targetPool[Label_Default][obj] = struct{}{}
+	mutexList[muEnum].Unlock()
 }
 
 // ===== Render List =====
