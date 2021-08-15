@@ -13,3 +13,9 @@ func EqBool(expected bool, actual bool) {
 		commonFatal(expected, actual)
 	}
 }
+
+func EqInt(expected int, actual int) {
+	if expected != actual {
+		commonFatal(expected, actual)
+	}
+}

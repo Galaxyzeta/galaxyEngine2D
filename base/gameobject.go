@@ -32,6 +32,7 @@ type GameObject2D struct {
 	Callbacks  *GameObjectFunctions
 	mu         lock.SpinLock
 	components map[string]IComponent
+	systems    map[string]ISystem
 	iobj2d     IGameObject2D
 	IsVisible  bool
 	IsActive   bool
@@ -59,6 +60,7 @@ func NewGameObject2D(name string) *GameObject2D {
 		IsActive:   true,
 		mu:         lock.SpinLock{},
 		components: map[string]IComponent{},
+		systems:    map[string]ISystem{},
 	}
 	return ret
 }
@@ -109,6 +111,22 @@ func (o *GameObject2D) GetComponent(name string) IComponent {
 		panic(fmt.Sprintf("no such component: %v", name))
 	}
 	return ret
+}
+
+func (o *GameObject2D) GetAllComponents() map[string]IComponent {
+	return o.components
+}
+
+func (o *GameObject2D) GetSubscribedSystemMap() map[string]ISystem {
+	return o.systems
+}
+
+func (o *GameObject2D) AppendSubscribedSystem(sys ISystem) {
+	o.systems[sys.GetName()] = sys
+}
+
+func (o *GameObject2D) RemoveSubscribedSystem(sys ISystem) {
+	delete(o.systems, sys.GetName())
 }
 
 // +------------------------+

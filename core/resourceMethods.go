@@ -152,9 +152,9 @@ func poolMapReplica(orig map[label]objPool) (ret map[label]objPool) {
 }
 
 // poolReplica replicates a objPool. Not thread safe.
-func poolReplica(p objPool) (ret objPool) {
-	ret = make(objPool, len(p))
-	for k, v := range p {
+func poolReplica(orig objPool) (ret objPool) {
+	ret = make(objPool, len(orig))
+	for k, v := range orig {
 		ret[k] = v
 	}
 	return

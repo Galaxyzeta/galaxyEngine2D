@@ -6,7 +6,6 @@ package logger
 import (
 	"fmt"
 	"runtime"
-	"strings"
 	"time"
 )
 
@@ -35,17 +34,26 @@ const GlobalEnabled = true
 var GlobalLogger Logger = Logger{
 	enable: GlobalEnabled,
 	name:   "Default",
+	sink:   NewAsyncLoggerSink(1024, time.Millisecond*100),
 }
 
 // Logger is a representation of logging util.
 type Logger struct {
 	enable bool
 	name   string
+	sink   ILogSink
 }
 
-// New brings you a new logger.
+// New brings you a new logger with an async stdout sink.
 func New(name string) *Logger {
-	return &Logger{enable: true, name: name}
+	// return &Logger{enable: true, name: name, sink: NewAsyncLoggerSink(1024, time.Millisecond*500)}
+	return &Logger{enable: true, name: name, sink: NewAsyncLoggerSink(1024, time.Millisecond*500)}
+}
+
+// NewWithCustomSink brings you a new logger with a customized sink.
+func NewWithCustomSink(name string, sink ILogSink) *Logger {
+	// return &Logger{enable: true, name: name, sink: NewAsyncLoggerSink(1024, time.Millisecond*500)}
+	return &Logger{enable: true, name: name, sink: sink}
 }
 
 // Enable the logger.
@@ -133,6 +141,5 @@ func (logger *Logger) doLog(label string, msg string, bgcolor int, fgcolor int) 
 		return
 	}
 	_, fullpath, line, _ := runtime.Caller(3)
-	arr := strings.Split(fullpath, "/")
-	fmt.Printf("%c[0;%dm%s\t%d | %s %s-%d:\t%s%c[0m\n", 0x1B, bgcolor, label, time.Now().Unix(), logger.name, arr[len(arr)-1], line, msg, 0x1B)
+	logger.sink.Write(fmt.Sprintf("%c[0;%dm%s\t%d | %s %s - %d:\t%s%c[0m\n", 0x1B, bgcolor, label, time.Now().Unix(), logger.name, fullpath, line, msg, 0x1B))
 }

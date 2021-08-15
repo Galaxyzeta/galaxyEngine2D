@@ -2,6 +2,7 @@ package tests
 
 import (
 	"fmt"
+	"time"
 
 	"galaxyzeta.io/engine/core"
 	"galaxyzeta.io/engine/ecs/component"
@@ -30,11 +31,16 @@ func GameEngineTest() {
 			core.RegisterSystem(system.NewQuadTreeCollision2DSystem(0, physics.NewRectangle(0, 0, 1024, 1024), 4, 128))
 			sdk.Create(objs.TestPlayer_OnCreate)
 			var i float64
-			for i = 0; i < 480/16; i++ {
-				b := sdk.Create(objs.TestBlock_OnCreate)
-				tf := b.GetGameObject2D().GetComponent(component.NameTransform2D).(*component.Transform2D)
-				tf.Pos.X = i * 16
-				tf.Pos.Y = 128
+			var j float64
+			for j = 0; j < 5; j++ {
+				for i = 0; i < 24; i++ {
+					b := sdk.Create(objs.TestBlock_OnCreate)
+					tf := b.GetGameObject2D().GetComponent(component.NameTransform2D).(*component.Transform2D)
+					tf.Pos.X = i*16 + (j * 96)
+					tf.Pos.Y = 96 * (j + 1)
+					this := b.(*objs.TestBlock)
+					this.SelfDestructTime = time.Now().Add(time.Millisecond * 200 * time.Duration(int(j*24+i+5)))
+				}
 			}
 		},
 	})

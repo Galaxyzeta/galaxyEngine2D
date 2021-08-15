@@ -1,13 +1,15 @@
 package system
 
 import (
+	"fmt"
+
 	"galaxyzeta.io/engine/base"
+	"galaxyzeta.io/engine/collision"
 	"galaxyzeta.io/engine/ecs/component"
 	cc "galaxyzeta.io/engine/infra/concurrency"
 	"galaxyzeta.io/engine/infra/logger"
 	"galaxyzeta.io/engine/linalg"
 	"galaxyzeta.io/engine/physics"
-	"galaxyzeta.io/engine/physics/collision"
 )
 
 var NameCollision2Dsystem = "sys_QuadCollision2D"
@@ -31,38 +33,50 @@ type QuadTreeCollision2DSystem struct {
 }
 
 func (s *QuadTreeCollision2DSystem) execute(executor *cc.Executor) {
-	offset := s.qt.GetLooseOffset()
-	removeQueue := []*component.PolygonCollider{}
-	removeNode := []*collision.QTreeNode{}
-	s.qt.Traverse(func(pc *component.PolygonCollider, currentGrid physics.Rectangle, node *collision.QTreeNode) {
-		if !pc.Collider.GetBoundingBox().ToRectangle().CropOutside(offset, offset).Intersect(currentGrid) {
-			removeQueue = append(removeQueue, pc)
-			removeNode = append(removeNode, node)
+	rmPolygonColliders := []*component.PolygonCollider{}
+	rmNodes := []*collision.QTreeNode{}
+	s.qt.TraverseWithLock(func(pc *component.PolygonCollider, node *collision.QTreeNode, at collision.AreaType, idx int) bool {
+		if at == collision.Inline {
+			// inline object: checks intersection with its child nodes.
+			if val := node.GetIntersectedSection(pc.Collider.GetBoundingBox()); val >= 0 {
+				rmNodes = append(rmNodes, node)
+				rmPolygonColliders = append(rmPolygonColliders, pc)
+			}
+		} else {
+			// not inline object: checks intersection with its currently related nodes
+			pcRect := pc.Collider.GetBoundingBox().ToRectangle()
+			if !pcRect.Intersect(node.GetArea()) {
+				if pc.GetIGameObject2D().GetGameObject2D().Name == "player" {
+					fmt.Print("")
+				}
+				rmPolygonColliders = append(rmPolygonColliders, pc)
+				rmNodes = append(rmNodes, node)
+			}
 		}
-		quadTreeLogger.Infof("pc-anchor = %v currentGrid = %v", pc.Collider.GetAnchor(), currentGrid)
+		return false
 	})
-	for idx, elem := range removeQueue {
-		items := removeNode[idx].GetItem()
-		delete(items, elem)
-		if len(items) == 0 {
-			removeNode[idx].SetHasChild(true)
-		}
+	for idx, elem := range rmPolygonColliders {
+		rmNodes[idx].Delete(elem)
 	}
-	for _, elem := range removeQueue {
+	for _, elem := range rmPolygonColliders {
 		s.qt.Insert(elem)
 	}
 }
 
 // ===== debug only =====
-func (s *QuadTreeCollision2DSystem) Traverse(f func(pc *component.PolygonCollider, r physics.Rectangle, qn *collision.QTreeNode)) {
-	s.qt.Traverse(f)
+func (s *QuadTreeCollision2DSystem) Traverse(needLock bool, f collision.QTreeTraverseFunc) {
+	if needLock {
+		s.qt.TraverseWithLock(f)
+	} else {
+		s.qt.Traverse(f)
+	}
 }
 
 // ===== Functional Implementation =====
 
 func (s *QuadTreeCollision2DSystem) QueryNeighborCollidersWithCollider(col component.PolygonCollider) []*component.PolygonCollider {
 	col.Collider.GetBoundingBox()
-	return s.QueryNeighborCollidersWithPosition(*col.Collider.GetAnchor())
+	return s.QueryNeighborCollidersWithRect(col.Collider.GetBoundingBox().ToRectangle())
 }
 
 func (s *QuadTreeCollision2DSystem) QueryNeighborCollidersWithColliderAndFilter(col component.PolygonCollider, filter func(*component.PolygonCollider) bool) []*component.PolygonCollider {
@@ -70,11 +84,19 @@ func (s *QuadTreeCollision2DSystem) QueryNeighborCollidersWithColliderAndFilter(
 }
 
 func (s *QuadTreeCollision2DSystem) QueryNeighborCollidersWithPosition(pos linalg.Vector2f64) []*component.PolygonCollider {
-	return s.qt.Query(pos)
+	return s.qt.QueryByPoint(pos)
+}
+
+func (s *QuadTreeCollision2DSystem) QueryNeighborCollidersWithRect(r physics.Rectangle) []*component.PolygonCollider {
+	return s.qt.QueryByRect(r)
+}
+
+func (s *QuadTreeCollision2DSystem) QueryNeighborCollidersWithRay(r physics.Ray) []*component.PolygonCollider {
+	return s.qt.QueryByRay(r)
 }
 
 func (s *QuadTreeCollision2DSystem) QueryNeighborCollidersWithPositionAndFilter(pos linalg.Vector2f64, filter func(*component.PolygonCollider) bool) []*component.PolygonCollider {
-	li := s.qt.Query(pos)
+	li := s.qt.QueryByPoint(pos)
 	var ret []*component.PolygonCollider
 	for _, collider := range li {
 		if filter(collider) {
@@ -82,10 +104,6 @@ func (s *QuadTreeCollision2DSystem) QueryNeighborCollidersWithPositionAndFilter(
 		}
 	}
 	return ret
-}
-
-func (s *QuadTreeCollision2DSystem) QueryNeighborCollidersWithRay(r physics.Ray) {
-
 }
 
 // ===== IMPLEMENTATION =====
@@ -109,4 +127,12 @@ func (s *QuadTreeCollision2DSystem) Register(iobj base.IGameObject2D) {
 }
 
 func (s *QuadTreeCollision2DSystem) Unregister(iobj base.IGameObject2D) {
+	testpc := iobj.GetGameObject2D().GetComponent(component.NamePolygonCollider)
+	s.qt.TraverseWithLock(func(pc *component.PolygonCollider, qn *collision.QTreeNode, _ collision.AreaType, _ int) bool {
+		if testpc == pc {
+			qn.Delete(pc)
+			return true
+		}
+		return false
+	})
 }

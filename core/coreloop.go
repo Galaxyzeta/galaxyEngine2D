@@ -196,6 +196,14 @@ func (g *Application) doRender() {
 	}
 }
 
+func (g *Application) doObjectRemoval(iobj2d base.IGameObject2D) {
+	obj2d := iobj2d.GetGameObject2D()
+	removeObjDefault(iobj2d, obj2d.IsActive)
+	for _, sys := range obj2d.GetSubscribedSystemMap() {
+		sys.Unregister(iobj2d)
+	}
+}
+
 func (g *Application) doPhysicalUpdate() {
 	watchdog := time.Now()
 
@@ -225,7 +233,7 @@ func (g *Application) doPhysicalUpdate() {
 	// 5. check whether there are items to unregister
 	for len(g.unregisterChannel) > 0 {
 		req := <-g.unregisterChannel
-		removeObjDefault(req.payload, req.payload.GetGameObject2D().IsActive)
+		g.doObjectRemoval(req.payload)
 	}
 	// 6. memorize current step
 	for _, pool := range activePoolReplica {

@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"galaxyzeta.io/engine/base"
+	"galaxyzeta.io/engine/collision"
 	"galaxyzeta.io/engine/core"
 	"galaxyzeta.io/engine/ecs/component"
 	"galaxyzeta.io/engine/ecs/system"
-	"galaxyzeta.io/engine/ecs/system/collision"
 	"galaxyzeta.io/engine/graphics"
 	"galaxyzeta.io/engine/infra/logger"
 	"galaxyzeta.io/engine/input"
@@ -66,7 +66,7 @@ func TestPlayer_OnCreate() base.IGameObject2D {
 	this.rb.UseGravity = true
 	this.rb.SetGravity(270, 0.02)
 
-	this.logger = logger.New("Player")
+	this.logger = logger.New("player")
 	this.csys = core.GetSystem(system.NameCollision2Dsystem).(collision.ICollisionSystem)
 
 	core.SubscribeSystem(this, system.NamePhysics2DSystem)
@@ -88,10 +88,10 @@ func __TestPlayer_OnStep(obj base.IGameObject2D) {
 	var dy float64 = 0
 
 	// movement
-	if input.IsKeyHeld(keys.KeyA) {
+	if input.IsKeyHeld(keys.KeyA) && !collision.HasColliderAtPolygonWithTag(this.csys, this.pc.Collider.Shift(-2, 0), "solid") {
 		dx = -1
 		isKeyHeld = true
-	} else if input.IsKeyHeld(keys.KeyD) {
+	} else if input.IsKeyHeld(keys.KeyD) && !collision.HasColliderAtPolygonWithTag(this.csys, this.pc.Collider.Shift(2, 0), "solid") {
 		dx = 1
 		isKeyHeld = true
 	}
@@ -115,9 +115,8 @@ func __TestPlayer_OnStep(obj base.IGameObject2D) {
 
 	this.tf.Translate(dx, dy)
 
-	bb := this.pc.Collider.GetBoundingBox()
-	bot := bb[physics.BB_BotLeft]
-	if val := collision.ColliderAtWithTag(this.csys, "solid", bot); val != nil {
+	testPoly := this.pc.Collider.Shift(0, 1)
+	if val := collision.ColliderAtPolygonWithTag(this.csys, testPoly, "solid"); val != nil {
 		if time.Since(this.lastJumpTime) > this.jumpPreventionTime {
 			this.rb.UseGravity = false
 			this.rb.GravityVector.Speed = 0
@@ -128,6 +127,7 @@ func __TestPlayer_OnStep(obj base.IGameObject2D) {
 		colliderY := val.Collider.GetBoundingBox().GetTopLeftPoint().Y
 		this.tf.Pos.Y += (colliderY - thisY)
 	} else {
+		this.canJump = false
 		this.rb.UseGravity = true
 	}
 }
@@ -135,14 +135,16 @@ func __TestPlayer_OnStep(obj base.IGameObject2D) {
 func __TestPlayer_OnRender(obj base.IGameObject2D) {
 	this := obj.(*TestPlayer)
 	this.Sprite.Render(sdk.GetCamera(), linalg.Point2f64(this.tf.Pos))
-	for i := 0; i < 20; i++ {
-		timing := time.Now()
-		graphics.DrawRectangle(this.pc.Collider.GetBoundingBox().ToRectangle(), linalg.NewRgbaF64(1, 0, 0, 1))
-		this.logger.Debugf("%v", time.Since(timing))
-	}
-	// this.csys.(*system.QuadTreeCollision2DSystem).Traverse(func(pc *component.PolygonCollider, r physics.Rectangle, qn *phy.QTreeNode) {
-	// 	graphics.DrawRectangle(pc.Collider.GetBoundingBox().ToRectangle(), linalg.NewRgbaF64(0, 0, 1, 1))
-	// })
+	this.csys.(*system.QuadTreeCollision2DSystem).Traverse(true, func(pc *component.PolygonCollider, qn *collision.QTreeNode, at collision.AreaType, idx int) bool {
+		graphics.DrawRectangle(qn.GetArea(), linalg.NewRgbaF64(0, 1, 0, 1))
+		if pc.GetIGameObject2D().GetGameObject2D().Name == "player" {
+			pcRect := pc.Collider.GetBoundingBox().ToRectangle()
+			graphics.DrawRectangle(pc.Collider.GetBoundingBox().ToRectangle(), linalg.NewRgbaF64(0, 0, 1, 1))
+			graphics.DrawRectangle(pcRect.CropOutside(pcRect.Height/2, pcRect.Width/2), linalg.NewRgbaF64(0, 0, 1, 1))
+			graphics.DrawRectangle(qn.GetArea().CropOutside(-1, -1), linalg.NewRgbaF64(1, 0, 0, 1))
+		}
+		return false
+	})
 }
 
 func __TestPlayer_OnDestroy(obj base.IGameObject2D) {

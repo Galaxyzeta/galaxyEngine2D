@@ -25,26 +25,27 @@ func TestInsertIntoQuadTree(t *testing.T) {
 			})
 		}
 	}
-	qt.Traverse(func(pc *component.PolygonCollider, r physics.Rectangle, node *QTreeNode) {
+	qt.Traverse(func(pc *component.PolygonCollider, node *QTreeNode, at AreaType, idx int) bool {
 		cnt--
 		t.Log(pc.Collider.GetBoundingBox(), node)
+		return false
 	})
 	t.Log(cnt)
 
 	t.Log("Q1==============")
-	for _, elem := range qt.Query(linalg.NewVector2f64(1, 1)) {
+	for _, elem := range qt.QueryByPoint(linalg.NewVector2f64(1, 1)) {
 		t.Log(elem.Collider.GetWorldVertices())
 	}
 	t.Log("Q2==============")
-	for _, elem := range qt.Query(linalg.NewVector2f64(-1, 1)) {
+	for _, elem := range qt.QueryByPoint(linalg.NewVector2f64(-1, 1)) {
 		t.Log(elem.Collider.GetWorldVertices())
 	}
 	t.Log("Q3==============")
-	for _, elem := range qt.Query(linalg.NewVector2f64(-1, -1)) {
+	for _, elem := range qt.QueryByPoint(linalg.NewVector2f64(-1, -1)) {
 		t.Log(elem.Collider.GetWorldVertices())
 	}
 	t.Log("Q4==============")
-	for _, elem := range qt.Query(linalg.NewVector2f64(1, -1)) {
+	for _, elem := range qt.QueryByPoint(linalg.NewVector2f64(1, -1)) {
 		t.Log(elem.Collider.GetWorldVertices())
 	}
 }

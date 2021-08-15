@@ -41,13 +41,18 @@ func UnregisterSystem(sys base.ISystem) {
 // SubscribeSystem registers an object into given system.
 // Will panic if the system was not found.
 func SubscribeSystem(iobj base.IGameObject2D, sysname string) {
-	name2System[sysname].Register(iobj)
+	sys := name2System[sysname]
+	sys.Register(iobj)
+	iobj.GetGameObject2D().AppendSubscribedSystem(sys)
 }
 
 // UnsubscribeSystem unregisters an object from given system.
 // Will panic if the system was not found.
 func UnsubscribeSystem(iobj base.IGameObject2D, sysname string) {
-	name2System[sysname].Unregister(iobj)
+	sys := name2System[sysname]
+	sys.Unregister(iobj)
+	iobj.GetGameObject2D().RemoveSubscribedSystem(sys)
+
 }
 
 func GetSystem(sysname string) base.ISystem {

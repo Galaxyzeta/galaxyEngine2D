@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	cc "galaxyzeta.io/engine/infra/concurrency"
+	"galaxyzeta.io/engine/infra/concurrency/lock"
+	"galaxyzeta.io/engine/infra/require"
 )
 
 func TestSynergyGate(t *testing.T) {
@@ -40,4 +42,21 @@ func TestSynergyGate(t *testing.T) {
 		t.Fatal("not workin")
 	}
 	wg.Wait()
+}
+
+func TestSpinlock(t *testing.T) {
+	spinLock := lock.SpinLock{}
+	counter := 0
+	wg := sync.WaitGroup{}
+	for i := 0; i < 10000; i++ {
+		wg.Add(1)
+		go func() {
+			spinLock.Lock()
+			counter++
+			spinLock.Unlock()
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	require.EqInt(counter, 10000)
 }

@@ -126,6 +126,18 @@ func (poly Polygon) ProjectOn(axis linalg.Vector2f64) linalg.Vector2f64 {
 	return linalg.Vector2f64{X: min, Y: max}
 }
 
+// Shift a polygon's original vertices with given x and y amount, and return the shifted replica of original polygon.
+func (poly Polygon) Shift(x float64, y float64) Polygon {
+	replica := poly
+	replicatedArray := make([]linalg.Vector2f64, len(poly.vertices))
+	copy(replicatedArray, poly.vertices)
+	replica.vertices = replicatedArray
+	for idx, vertice := range replica.vertices {
+		replica.vertices[idx] = vertice.Add(linalg.NewVector2f64(x, y))
+	}
+	return replica
+}
+
 // overlap judges whether two segments on a same axis overlaps.
 func overlap(a linalg.Vector2f64, b linalg.Vector2f64) bool {
 	leftMost, rightMost := a, b

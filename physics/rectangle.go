@@ -20,13 +20,16 @@ func NewRectangle(left float64, top float64, w float64, h float64) Rectangle {
 
 func (rect Rectangle) Intersect(shape IShape) bool {
 	switch shape := shape.(type) {
-	case *Rectangle:
+	case Rectangle:
 		return rect.IntersectWithRectangle(shape)
+	case *Rectangle:
+		return rect.IntersectWithRectangle(*shape)
 	}
+
 	return false
 }
 
-func (rect Rectangle) InsideRectangle(anotherRect *Rectangle) bool {
+func (rect Rectangle) InsideRectangle(anotherRect Rectangle) bool {
 	anotherRight := anotherRect.Left + anotherRect.Width
 	anotherBottom := anotherRect.Top + anotherRect.Height
 	thisRight := rect.Left + rect.Width
@@ -34,7 +37,7 @@ func (rect Rectangle) InsideRectangle(anotherRect *Rectangle) bool {
 	return rect.Left >= anotherRect.Left && thisRight <= anotherRight && rect.Top <= anotherRect.Top && thisBottom >= anotherBottom
 }
 
-func (rect Rectangle) IntersectWithRectangle(anotherRect *Rectangle) bool {
+func (rect Rectangle) IntersectWithRectangle(anotherRect Rectangle) bool {
 	anotherRight := anotherRect.Left + anotherRect.Width
 	anotherBottom := anotherRect.Top + anotherRect.Height
 	thisRight := rect.Left + rect.Width
