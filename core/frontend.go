@@ -124,11 +124,11 @@ func RenderLoop(window *glfw.Window, renderFunc func(), sigKill <-chan struct{})
 
 		// ---- render ----
 		renderFunc()
-		// drawcalls := len(RenderCmdChan)
-		// for i := 0; i < drawcalls; i++ {
-		// 	systemLogger.Debugf("exec external drawcall")
-		// 	(<-RenderCmdChan)()
-		// }
+		drawcalls := len(RenderCmdChan)
+		for i := 0; i < drawcalls; i++ {
+			// systemLogger.Debugf("exec external drawcall")
+			(<-RenderCmdChan)()
+		}
 		// ---- render ----
 
 		window.SwapBuffers()

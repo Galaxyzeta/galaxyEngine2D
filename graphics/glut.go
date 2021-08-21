@@ -123,6 +123,11 @@ func GLNewVBO(size int32) uint32 {
 	return vbo
 }
 
+// GLReleaseVBO destory an VBO.
+func GLReleaseVBO(vbo uint32) {
+	gl.DeleteBuffers(1, &vbo)
+}
+
 // GLNewVAO allocates an VAO.
 func GLNewVAO(size int32) uint32 {
 	var vao uint32 = 0

@@ -2,6 +2,7 @@ package collision
 
 import (
 	"sync/atomic"
+	"time"
 
 	"galaxyzeta.io/engine/ecs/component"
 	"galaxyzeta.io/engine/infra/concurrency/lock"
@@ -27,6 +28,11 @@ const (
 )
 
 var idGenerator int64
+var qtlogger *logger.Logger = logger.New("QuadTree")
+
+func init() {
+	qtlogger.Disable()
+}
 
 type QuadTree struct {
 	root        *QTreeNode        // store items inside the area
@@ -104,12 +110,16 @@ func (qt *QuadTree) Traverse(fn QTreeTraverseFunc) {
 // TraverseNeedLock is a safer version of traverse.
 // When you're doing a traverse in rendering routine, you must use this.
 func (qt *QuadTree) TraverseWithLock(fn QTreeTraverseFunc) {
+	qtlogger.Debug("--begin--")
+	timer := time.Now()
 	qt.mu.Lock()
 	defer qt.mu.Unlock()
 	if qt.root == nil {
 		return
 	}
 	qt.root.doTraverse(fn, qt.area)
+	qtlogger.Debug("--end--")
+	qtlogger.Debugf("cost = %v", time.Since(timer))
 }
 
 func (qt *QuadTree) Insert(collider *component.PolygonCollider) {
@@ -146,7 +156,7 @@ func (qt *QTreeNode) tryNodeMerge() {
 		}
 	}
 	if itemsCnt < (qt.parent.loadFactor >> 1) {
-		logger.GlobalLogger.Debug("trigger node merge")
+		qtlogger.Debug("trigger node merge")
 		// children' items move to parent
 		for _, eachChild := range parent.children {
 			if eachChild == nil {
@@ -244,14 +254,20 @@ func (qt *QTreeNode) doTraverse(fn QTreeTraverseFunc, boundary physics.Rectangle
 		}
 	}
 	for idx, item := range qt.items {
+		// rec := time.Now()
 		if fn(item, qt, Normal, idx) {
 			return
 		}
+		// qtlogger.Debugf("[Normal] item = %v deltaTime = %v", item.GetIGameObject2D().GetGameObject2D().Name, time.Since(rec))
+
 	}
 	for idx, item := range qt.inlineItems {
+		// rec := time.Now()
 		if fn(item, qt, Inline, idx) {
 			return
 		}
+		// qtlogger.Debugf("[Inline] item = %v deltaTime = %v", item.GetIGameObject2D().GetGameObject2D().Name, time.Since(rec))
+
 	}
 }
 
@@ -295,7 +311,7 @@ func (qt *QTreeNode) doInsert(collider *component.PolygonCollider) {
 		return
 	}
 	if qt.children == nil {
-		logger.GlobalLogger.Debugf("normal insert, %v, area = %v", collider.Collider.GetWorldVertices(), qt.area)
+		qtlogger.Debugf("normal insert, %v, area = %v", collider.Collider.GetWorldVertices(), qt.area)
 		qt.items = append(qt.items, collider)
 		if len(qt.items) > qt.loadFactor {
 			if qt.area.Height > qt.minDivision && qt.area.Width > qt.minDivision {
@@ -306,7 +322,7 @@ func (qt *QTreeNode) doInsert(collider *component.PolygonCollider) {
 					NewQTreeNode(qt, Section3),
 					NewQTreeNode(qt, Section4),
 				}
-				logger.GlobalLogger.Debugf("trigger split, area = %v", qt.area)
+				qtlogger.Debugf("trigger split, area = %v", qt.area)
 				for _, item := range qt.items {
 					qt.insertIntoChild0(item)
 				}
@@ -325,17 +341,17 @@ func (qt *QTreeNode) insertIntoChild0(collider *component.PolygonCollider) {
 	if whichSection == Overlap {
 		// overlap, insert into current node's inlineItem map
 		qt.inlineItems = append(qt.inlineItems, collider)
-		logger.GlobalLogger.Debugf("overlap, insert into inline, %v, area = %v", collider.Collider.GetWorldVertices(), qt.area)
+		qtlogger.Debugf("overlap, insert into inline, %v, area = %v", collider.Collider.GetWorldVertices(), qt.area)
 	} else if whichSection == Overflow {
 		// overflow
 		if qt.parent != nil {
 			panic("should not happen")
 		}
 		qt.inlineItems = append(qt.inlineItems, collider)
-		logger.GlobalLogger.Debugf("overflow, insert into inline, %v, area = %v", collider.Collider.GetWorldVertices(), qt.area)
+		qtlogger.Debugf("overflow, insert into inline, %v, area = %v", collider.Collider.GetWorldVertices(), qt.area)
 	} else {
 		// normal insert, no overlap, insert into children
-		logger.GlobalLogger.Debugf("searching, area = %v", qt.area)
+		qtlogger.Debugf("searching, area = %v", qt.area)
 		qt.children[whichSection].doInsert(collider)
 	}
 }

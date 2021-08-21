@@ -63,10 +63,10 @@ func TestBlock_OnCreate() base.IGameObject2D {
 }
 
 func __TestBlock_OnStep(iobj base.IGameObject2D) {
-	this := iobj.(*TestBlock)
-	if time.Now().After(this.SelfDestructTime) {
-		sdk.Destroy(iobj)
-	}
+	// this := iobj.(*TestBlock)
+	// if time.Now().After(this.SelfDestructTime) {
+	// 	sdk.Destroy(iobj)
+	// }
 }
 
 func __TestBlock_OnDestroy(iobj base.IGameObject2D) {

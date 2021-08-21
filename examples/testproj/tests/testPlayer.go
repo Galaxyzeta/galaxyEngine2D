@@ -27,8 +27,9 @@ func GameEngineTest() {
 		Title:       "Test Window",
 		InitFunc: func() {
 			loadResource()
-			core.RegisterSystem(system.NewPhysics2DSystem(0))
-			core.RegisterSystem(system.NewQuadTreeCollision2DSystem(0, physics.NewRectangle(0, 0, 1024, 1024), 4, 128))
+			csys := system.NewQuadTreeCollision2DSystem(0, physics.NewRectangle(0, 0, 1024, 1024), 4, 128)
+			core.RegisterSystem(csys)
+			core.RegisterSystem(system.NewPhysics2DSystem(0, csys))
 			sdk.Create(objs.TestPlayer_OnCreate)
 			var i float64
 			var j float64

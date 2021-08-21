@@ -213,11 +213,16 @@ func (g *Application) doPhysicalUpdate() {
 		addObjDefault(req.payload, *req.isActive)
 	}
 	// 2. execute ECS-system
+	ecsTimeStatistic := map[string]time.Duration{}
+	watchdog0 := time.Now()
 	for _, sys := range systemPriorityList {
 		if sys.GetSystemBase().IsEnabled() {
 			sys.Execute(app.executor)
+			ecsTimeStatistic[sys.GetName()] = time.Since(watchdog0)
+			watchdog0 = time.Now()
 		}
 	}
+
 	// 3. do user steps
 	mutexList[Mutex_ActivePool].Lock()
 	activePoolReplica := poolMapReplica(activePool)
@@ -253,6 +258,6 @@ func (g *Application) doPhysicalUpdate() {
 		avg = 0
 	}
 	if elapsed > time.Second/time.Duration(app.physicalFPS) {
-		systemLogger.Warnf("WARNING: slow frame detected: %d", elapsed)
+		systemLogger.Warnf("WARNING: slow frame detected: %v, ecsDelta = %v", elapsed, ecsTimeStatistic)
 	}
 }

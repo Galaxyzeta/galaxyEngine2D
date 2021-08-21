@@ -5,6 +5,7 @@ All user defined 2D objects should be put here.
 package objs
 
 import (
+	"container/list"
 	"fmt"
 	"time"
 
@@ -39,6 +40,8 @@ type TestPlayer struct {
 	canJump            bool          // whether the user can jump or not
 	lastJumpTime       time.Time     // last player jump time
 	jumpPreventionTime time.Duration // stop the user from operating a jump in this duration
+	speed              float64
+	jumpForceElem      *list.Element
 }
 
 //TestPlayer_OnCreate is a public constructor.
@@ -64,7 +67,7 @@ func TestPlayer_OnCreate() base.IGameObject2D {
 
 	// Enable gravity
 	this.rb.UseGravity = true
-	this.rb.SetGravity(270, 0.02)
+	this.rb.SetGravity(270, 0.1)
 
 	this.logger = logger.New("player")
 	this.csys = core.GetSystem(system.NameCollision2Dsystem).(collision.ICollisionSystem)
@@ -74,6 +77,7 @@ func TestPlayer_OnCreate() base.IGameObject2D {
 
 	this.jumpPreventionTime = time.Millisecond * 50
 	this.lastJumpTime = time.Now()
+	this.speed = 2
 
 	return this
 }
@@ -89,24 +93,41 @@ func __TestPlayer_OnStep(obj base.IGameObject2D) {
 
 	// movement
 	if input.IsKeyHeld(keys.KeyA) && !collision.HasColliderAtPolygonWithTag(this.csys, this.pc.Collider.Shift(-2, 0), "solid") {
-		dx = -1
+		dx = -this.speed
 		isKeyHeld = true
 	} else if input.IsKeyHeld(keys.KeyD) && !collision.HasColliderAtPolygonWithTag(this.csys, this.pc.Collider.Shift(2, 0), "solid") {
-		dx = 1
+		dx = this.speed
 		isKeyHeld = true
+	}
+
+	// functional debug
+	if input.IsKeyPressed(keys.KeyE) {
+		this.speed += 1
+	}
+	if input.IsKeyPressed(keys.KeyQ) {
+		this.speed -= 1
 	}
 
 	// jump
 	if input.IsKeyPressed(keys.KeyW) && this.canJump && time.Since(this.lastJumpTime) > this.jumpPreventionTime {
 		this.canJump = false
 		this.lastJumpTime = time.Now()
-		this.rb.AddForce(component.SpeedVector{
+		this.jumpForceElem = this.rb.AddForce(component.SpeedVector{
 			Acceleration: 0.05,
 			Direction:    90,
-			Speed:        3,
+			Speed:        5,
 		})
 	}
 
+	// ceil detecting
+	if collision.HasColliderAtPolygonWithTag(this.csys, this.pc.Collider.Shift(0, this.rb.GetVspeed()), "solid") {
+		if this.jumpForceElem != nil {
+			this.rb.RemoveForce(this.jumpForceElem)
+			this.jumpForceElem = nil
+		}
+	}
+
+	// animation
 	if isKeyHeld {
 		this.Sprite.EnableAnimation()
 	} else {
@@ -115,27 +136,19 @@ func __TestPlayer_OnStep(obj base.IGameObject2D) {
 
 	this.tf.Translate(dx, dy)
 
-	testPoly := this.pc.Collider.Shift(0, 1)
-	if val := collision.ColliderAtPolygonWithTag(this.csys, testPoly, "solid"); val != nil {
+	if val := collision.ColliderAtPolygonWithTag(this.csys, this.pc.Collider.Shift(0, 1), "solid"); val != nil {
 		if time.Since(this.lastJumpTime) > this.jumpPreventionTime {
-			this.rb.UseGravity = false
-			this.rb.GravityVector.Speed = 0
 			this.canJump = true
 		}
-		// stick to the surface, do some trajetory correction
-		thisY := this.pc.Collider.GetBoundingBox().GetBottomLeftPoint().Y
-		colliderY := val.Collider.GetBoundingBox().GetTopLeftPoint().Y
-		this.tf.Pos.Y += (colliderY - thisY)
 	} else {
 		this.canJump = false
-		this.rb.UseGravity = true
 	}
 }
 
 func __TestPlayer_OnRender(obj base.IGameObject2D) {
 	this := obj.(*TestPlayer)
 	this.Sprite.Render(sdk.GetCamera(), linalg.Point2f64(this.tf.Pos))
-	this.csys.(*system.QuadTreeCollision2DSystem).Traverse(true, func(pc *component.PolygonCollider, qn *collision.QTreeNode, at collision.AreaType, idx int) bool {
+	this.csys.(*system.QuadTreeCollision2DSystem).Traverse(false, func(pc *component.PolygonCollider, qn *collision.QTreeNode, at collision.AreaType, idx int) bool {
 		graphics.DrawRectangle(qn.GetArea(), linalg.NewRgbaF64(0, 1, 0, 1))
 		if pc.GetIGameObject2D().GetGameObject2D().Name == "player" {
 			pcRect := pc.Collider.GetBoundingBox().ToRectangle()
@@ -143,8 +156,12 @@ func __TestPlayer_OnRender(obj base.IGameObject2D) {
 			graphics.DrawRectangle(pcRect.CropOutside(pcRect.Height/2, pcRect.Width/2), linalg.NewRgbaF64(0, 0, 1, 1))
 			graphics.DrawRectangle(qn.GetArea().CropOutside(-1, -1), linalg.NewRgbaF64(1, 0, 0, 1))
 		}
+		ceilTest := this.pc.Collider.Shift(0, -this.rb.GravityVector.Speed*2)
+		graphics.DrawRectangle(ceilTest.GetBoundingBox().ToRectangle(), linalg.NewRgbaF64(1, 0, 0, 1))
+
 		return false
 	})
+	// graphics.DrawSegment(linalg.NewSegmentf64(this.tf.X(), this.tf.Y(), this.tf.X()+64, this.tf.Y()), linalg.NewRgbaF64(1, 0, 0, 0))
 }
 
 func __TestPlayer_OnDestroy(obj base.IGameObject2D) {

@@ -34,6 +34,14 @@ func (tf *Transform2D) GetPrevY() float64 {
 	return tf.prevPos.Y
 }
 
+func (tf *Transform2D) X() float64 {
+	return tf.Pos.X
+}
+
+func (tf *Transform2D) Y() float64 {
+	return tf.Pos.Y
+}
+
 // MemXY memorizes X, Y postion to prevX, prevY.
 func (tf *Transform2D) MemXY() {
 	tf.prevPos = tf.Pos

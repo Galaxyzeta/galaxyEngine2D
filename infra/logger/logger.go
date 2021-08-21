@@ -82,14 +82,14 @@ func (logger *Logger) Infof(format string, arg ...interface{}) {
 
 // Debug gives some debug info.
 func (logger *Logger) Debug(msg string) {
-	if GlobalEnabled {
+	if GlobalEnabled && logger.enable {
 		logger.doLog("[DEBUG]", msg, bgWhite, fgBlack)
 	}
 }
 
 // Debugf gives some debug info with format.
 func (logger *Logger) Debugf(format string, arg ...interface{}) {
-	if GlobalEnabled {
+	if GlobalEnabled && logger.enable {
 		logger.Debug(fmt.Sprintf(format, arg...))
 	}
 }
