@@ -43,7 +43,7 @@ func UnregisterSystem(sys base.ISystem) {
 func SubscribeSystem(iobj base.IGameObject2D, sysname string) {
 	sys := name2System[sysname]
 	sys.Register(iobj)
-	iobj.GetGameObject2D().AppendSubscribedSystem(sys)
+	iobj.Obj().AppendSubscribedSystem(sys)
 }
 
 // UnsubscribeSystem unregisters an object from given system.
@@ -51,7 +51,7 @@ func SubscribeSystem(iobj base.IGameObject2D, sysname string) {
 func UnsubscribeSystem(iobj base.IGameObject2D, sysname string) {
 	sys := name2System[sysname]
 	sys.Unregister(iobj)
-	iobj.GetGameObject2D().RemoveSubscribedSystem(sys)
+	iobj.Obj().RemoveSubscribedSystem(sys)
 
 }
 

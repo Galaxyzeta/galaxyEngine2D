@@ -46,7 +46,7 @@ func (s *QuadTreeCollision2DSystem) execute(executor *cc.Executor) {
 			// not inline object: checks intersection with its currently related nodes
 			pcRect := pc.Collider.GetBoundingBox().ToRectangle()
 			if !pcRect.Intersect(node.GetArea()) {
-				if pc.GetIGameObject2D().GetGameObject2D().Name == "player" {
+				if pc.I().Obj().Name == "player" {
 					fmt.Print("")
 				}
 				rmPolygonColliders = append(rmPolygonColliders, pc)
@@ -121,13 +121,13 @@ func (s *QuadTreeCollision2DSystem) GetName() string {
 }
 
 func (s *QuadTreeCollision2DSystem) Register(iobj base.IGameObject2D) {
-	ipc := iobj.GetGameObject2D().GetComponent(component.NamePolygonCollider)
+	ipc := iobj.Obj().GetComponent(component.NamePolygonCollider)
 	pc := ipc.(*component.PolygonCollider)
 	s.qt.Insert(pc)
 }
 
 func (s *QuadTreeCollision2DSystem) Unregister(iobj base.IGameObject2D) {
-	testpc := iobj.GetGameObject2D().GetComponent(component.NamePolygonCollider)
+	testpc := iobj.Obj().GetComponent(component.NamePolygonCollider)
 	s.qt.TraverseWithLock(func(pc *component.PolygonCollider, qn *collision.QTreeNode, _ collision.AreaType, _ int) bool {
 		if testpc == pc {
 			qn.Delete(pc)

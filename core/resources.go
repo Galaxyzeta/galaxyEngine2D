@@ -60,6 +60,7 @@ const (
 	Mutex_ActivePool
 	Mutex_InactivePool
 	Mutex_System
+	Mutex_CursorPos
 )
 
 var mutexList []*sync.RWMutex
@@ -89,7 +90,13 @@ const (
 )
 
 // +------------------------+
-// |	    Redner   	 	|
+// |	  	Cursor 		 	|
+// +------------------------+
+var cursorX float64
+var cursorY float64
+
+// +------------------------+
+// |	    Render   	 	|
 // +------------------------+
 
 var RenderCmdChan chan func() = make(chan func(), 1024)

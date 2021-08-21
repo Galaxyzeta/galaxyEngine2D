@@ -36,7 +36,7 @@ func GameEngineTest() {
 			for j = 0; j < 5; j++ {
 				for i = 0; i < 24; i++ {
 					b := sdk.Create(objs.TestBlock_OnCreate)
-					tf := b.GetGameObject2D().GetComponent(component.NameTransform2D).(*component.Transform2D)
+					tf := b.Obj().GetComponent(component.NameTransform2D).(*component.Transform2D)
 					tf.Pos.X = i*16 + (j * 96)
 					tf.Pos.Y = 96 * (j + 1)
 					this := b.(*objs.TestBlock)
@@ -53,8 +53,10 @@ func loadResource() {
 	graphics.NewFrame("frm_megaman_02", fmt.Sprintf("%s/examples/testproj/static/megaman/megaman-running-02.png", cwd))
 	graphics.NewFrame("frm_megaman_03", fmt.Sprintf("%s/examples/testproj/static/megaman/megaman-running-03.png", cwd))
 	graphics.NewFrame("frm_block", fmt.Sprintf("%s/examples/testproj/static/megaman/block.png", cwd))
+	graphics.NewFrame("frm_bullet", fmt.Sprintf("%s/examples/testproj/static/megaman/bullet.png", cwd))
 
 	graphics.NewSpriteMeta("spr_megaman", "frm_megaman_01", "frm_megaman_02", "frm_megaman_03")
 	graphics.NewSpriteMeta("spr_block", "frm_block")
+	graphics.NewSpriteMeta("spr_bullet", "frm_bullet")
 
 }

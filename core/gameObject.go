@@ -8,7 +8,7 @@ import (
 // doCreate does actual creation.
 func doCreate(constructor func() base.IGameObject2D, isActive *bool) base.IGameObject2D {
 	obj := constructor()
-	obj.GetGameObject2D().SetIGameObject2D(obj)
+	obj.Obj().SetIGameObject2D(obj)
 	app.registerChannel <- resourceAccessRequest{
 		payload:  obj,
 		isActive: isActive,
@@ -17,7 +17,7 @@ func doCreate(constructor func() base.IGameObject2D, isActive *bool) base.IGameO
 }
 
 func doDestroy(obj base.IGameObject2D, isActive *bool) {
-	obj2d := obj.GetGameObject2D()
+	obj2d := obj.Obj()
 	if obj2d.Callbacks.OnDestroy != nil {
 		obj2d.Callbacks.OnDestroy(obj)
 	}
@@ -54,7 +54,7 @@ func Activate(obj base.IGameObject2D) bool {
 	if ContainsInactiveDefault(obj) {
 		delete(inactivePool[Label_Default], obj)
 		activePool[Label_Default][obj] = struct{}{}
-		obj.GetGameObject2D().IsActive = true
+		obj.Obj().IsActive = true
 		return true
 	}
 	return false
@@ -65,7 +65,7 @@ func Deactivate(obj base.IGameObject2D) bool {
 	if ContainsActiveDefault(obj) {
 		delete(activePool[Label_Default], obj)
 		inactivePool[Label_Default][obj] = struct{}{}
-		obj.GetGameObject2D().IsActive = false
+		obj.Obj().IsActive = false
 		return true
 	}
 	return false

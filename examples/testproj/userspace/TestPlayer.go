@@ -7,6 +7,7 @@ package objs
 import (
 	"container/list"
 	"fmt"
+	"math"
 	"time"
 
 	"galaxyzeta.io/engine/base"
@@ -38,10 +39,13 @@ type TestPlayer struct {
 
 	// -- user defined
 	canJump            bool          // whether the user can jump or not
+	isAir              bool          // whether the user is in air
 	lastJumpTime       time.Time     // last player jump time
 	jumpPreventionTime time.Duration // stop the user from operating a jump in this duration
 	speed              float64
 	jumpForceElem      *list.Element
+
+	hp int
 }
 
 //TestPlayer_OnCreate is a public constructor.
@@ -67,7 +71,7 @@ func TestPlayer_OnCreate() base.IGameObject2D {
 
 	// Enable gravity
 	this.rb.UseGravity = true
-	this.rb.SetGravity(270, 0.1)
+	this.rb.SetGravity(270, 0.15)
 
 	this.logger = logger.New("player")
 	this.csys = core.GetSystem(system.NameCollision2Dsystem).(collision.ICollisionSystem)
@@ -88,19 +92,39 @@ func TestPlayer_OnCreate() base.IGameObject2D {
 func __TestPlayer_OnStep(obj base.IGameObject2D) {
 	this := obj.(*TestPlayer)
 	isKeyHeld := false
+
 	var dx float64 = 0
 	var dy float64 = 0
 
 	// movement
-	if input.IsKeyHeld(keys.KeyA) && !collision.HasColliderAtPolygonWithTag(this.csys, this.pc.Collider.Shift(-2, 0), "solid") {
+	if input.IsKeyHeld(keys.KeyA) && !collision.HasColliderAtPolygonWithTag(this.csys, this.pc.Collider.Shift(-this.speed*2, 0), "solid") {
 		dx = -this.speed
 		isKeyHeld = true
-	} else if input.IsKeyHeld(keys.KeyD) && !collision.HasColliderAtPolygonWithTag(this.csys, this.pc.Collider.Shift(2, 0), "solid") {
+	} else if input.IsKeyHeld(keys.KeyD) && !collision.HasColliderAtPolygonWithTag(this.csys, this.pc.Collider.Shift(this.speed*2, 0), "solid") {
 		dx = this.speed
 		isKeyHeld = true
 	}
 
-	// functional debug
+	// // mouse
+	// if input.IsKeyPressed(keys.MouseButton1) {
+	// 	x, y := core.GetCursorPos()
+	// 	this.logger.Debugf("cx, cy = %f, %f", x, y)
+	// }
+
+	// shoot
+	if input.IsKeyPressed(keys.MouseButton1) {
+		projectile := sdk.Create(TestProjectile_OnCreate).(*TestProjectile)
+		projectile.selfDestruct = time.Now().Add(time.Second * 5)
+		projectile.owner = this
+		cx, cy := core.GetCursorPos()
+		projectile.directionRad = math.Atan2(cy-this.tf.Y(), cx-this.tf.X())
+		projectile.speed = 5
+		projectile.tf.Pos = this.tf.Pos
+
+		this.logger.Debugf("create bullet, mouse cursor is at %f, %f", cx, cy)
+	}
+
+	// change speed
 	if input.IsKeyPressed(keys.KeyE) {
 		this.speed += 1
 	}
@@ -109,22 +133,14 @@ func __TestPlayer_OnStep(obj base.IGameObject2D) {
 	}
 
 	// jump
-	if input.IsKeyPressed(keys.KeyW) && this.canJump && time.Since(this.lastJumpTime) > this.jumpPreventionTime {
+	if input.IsKeyPressed(keys.KeyW) && this.canJump {
 		this.canJump = false
 		this.lastJumpTime = time.Now()
 		this.jumpForceElem = this.rb.AddForce(component.SpeedVector{
-			Acceleration: 0.05,
+			Acceleration: 1,
 			Direction:    90,
-			Speed:        5,
+			Speed:        12,
 		})
-	}
-
-	// ceil detecting
-	if collision.HasColliderAtPolygonWithTag(this.csys, this.pc.Collider.Shift(0, this.rb.GetVspeed()), "solid") {
-		if this.jumpForceElem != nil {
-			this.rb.RemoveForce(this.jumpForceElem)
-			this.jumpForceElem = nil
-		}
 	}
 
 	// animation
@@ -134,15 +150,45 @@ func __TestPlayer_OnStep(obj base.IGameObject2D) {
 		this.Sprite.DisableAnimation()
 	}
 
-	this.tf.Translate(dx, dy)
+	vspeed := this.rb.GetVspeed()
+	if val := collision.ColliderAtPolygonWithTag(this.csys, this.pc.Collider.Shift(0, vspeed), "solid"); val != nil {
+		// something is above the player / beneath the player
+		if this.isAir {
+			if vspeed < 0 {
+				// player ascending, detect ceil
+				this.logger.Debug("ceil")
+				this.rb.RemoveForce(this.jumpForceElem)
+				this.jumpForceElem = nil
 
-	if val := collision.ColliderAtPolygonWithTag(this.csys, this.pc.Collider.Shift(0, 1), "solid"); val != nil {
-		if time.Since(this.lastJumpTime) > this.jumpPreventionTime {
-			this.canJump = true
+			} else if vspeed > 0 {
+				// player descending
+				if time.Since(this.lastJumpTime) > this.jumpPreventionTime {
+					// already jumped into the air, and in next frame he will go into ground
+					// in order to prevent this, snap him to the ground
+					this.logger.Debug("ground")
+
+					this.rb.RemoveForce(this.jumpForceElem)
+					this.jumpForceElem = nil
+
+					this.tf.Pos.Y = val.Collider.GetAnchor().Y - this.pc.Collider.GetBoundingBox().GetHeight()
+					this.isAir = false
+					this.canJump = true
+				}
+				// player has just jumped, but we don't want to pull him back immediately.
+			}
 		}
+		// something above/beneath but the player is grounded, in this case do nothing
 	} else {
-		this.canJump = false
+		// if vspeed has variation, then:
+		// 1. player is jumping;
+		// 2. floor collapsed, triggers isAir = true, thus increased gravity speed, causing vspeed to change
+		if vspeed != 0 {
+			this.isAir = true
+			this.canJump = false
+		}
 	}
+
+	this.tf.Translate(dx, dy)
 }
 
 func __TestPlayer_OnRender(obj base.IGameObject2D) {
@@ -150,18 +196,24 @@ func __TestPlayer_OnRender(obj base.IGameObject2D) {
 	this.Sprite.Render(sdk.GetCamera(), linalg.Point2f64(this.tf.Pos))
 	this.csys.(*system.QuadTreeCollision2DSystem).Traverse(false, func(pc *component.PolygonCollider, qn *collision.QTreeNode, at collision.AreaType, idx int) bool {
 		graphics.DrawRectangle(qn.GetArea(), linalg.NewRgbaF64(0, 1, 0, 1))
-		if pc.GetIGameObject2D().GetGameObject2D().Name == "player" {
-			pcRect := pc.Collider.GetBoundingBox().ToRectangle()
+		if pc.I().Obj().Name == "player" {
 			graphics.DrawRectangle(pc.Collider.GetBoundingBox().ToRectangle(), linalg.NewRgbaF64(0, 0, 1, 1))
-			graphics.DrawRectangle(pcRect.CropOutside(pcRect.Height/2, pcRect.Width/2), linalg.NewRgbaF64(0, 0, 1, 1))
 			graphics.DrawRectangle(qn.GetArea().CropOutside(-1, -1), linalg.NewRgbaF64(1, 0, 0, 1))
 		}
-		ceilTest := this.pc.Collider.Shift(0, -this.rb.GravityVector.Speed*2)
-		graphics.DrawRectangle(ceilTest.GetBoundingBox().ToRectangle(), linalg.NewRgbaF64(1, 0, 0, 1))
-
 		return false
 	})
-	// graphics.DrawSegment(linalg.NewSegmentf64(this.tf.X(), this.tf.Y(), this.tf.X()+64, this.tf.Y()), linalg.NewRgbaF64(1, 0, 0, 0))
+
+	if this.canJump {
+		graphics.DrawSegment(linalg.NewSegmentf64(this.tf.X(), this.tf.Y(), this.tf.X()+32, this.tf.Y()), linalg.NewRgbaF64(0, 1, 0, 0))
+	} else {
+		graphics.DrawSegment(linalg.NewSegmentf64(this.tf.X(), this.tf.Y(), this.tf.X()+32, this.tf.Y()), linalg.NewRgbaF64(1, 0, 0, 0))
+	}
+
+	if this.isAir {
+		graphics.DrawSegment(linalg.NewSegmentf64(this.tf.X()+32, this.tf.Y(), this.tf.X()+64, this.tf.Y()), linalg.NewRgbaF64(0, 1, 0, 0))
+	} else {
+		graphics.DrawSegment(linalg.NewSegmentf64(this.tf.X()+32, this.tf.Y(), this.tf.X()+64, this.tf.Y()), linalg.NewRgbaF64(1, 0, 0, 0))
+	}
 }
 
 func __TestPlayer_OnDestroy(obj base.IGameObject2D) {
@@ -170,6 +222,12 @@ func __TestPlayer_OnDestroy(obj base.IGameObject2D) {
 }
 
 // GetGameObject2D implements IGameObject2D.
-func (t TestPlayer) GetGameObject2D() *base.GameObject2D {
+func (t TestPlayer) Obj() *base.GameObject2D {
 	return t.GameObject2D
+}
+
+// TakeDamage implements rpgbase.TakeDamage
+func (t *TestPlayer) TakeDamage(dmg int) {
+	t.logger.Debugf("take damage = %v", dmg)
+	t.hp -= dmg
 }

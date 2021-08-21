@@ -21,7 +21,7 @@ type GameObjectFunctions struct {
 }
 
 type IGameObject2D interface {
-	GetGameObject2D() *GameObject2D
+	Obj() *GameObject2D // Obj returns the core properties struct of an IGameObject2D
 }
 
 type GameObject2D struct {
@@ -95,6 +95,15 @@ func (o *GameObject2D) RemoveTags(tags ...string) {
 	for _, tag := range tags {
 		delete(o.Tags, tag)
 	}
+}
+
+func (o *GameObject2D) HasTag(target string) bool {
+	for tag, _ := range o.Tags {
+		if tag == target {
+			return true
+		}
+	}
+	return false
 }
 
 func (o *GameObject2D) RegisterComponentIfAbsent(com IComponent) *GameObject2D {

@@ -43,33 +43,33 @@ func CollidersAt(sys ICollisionSystem, pos linalg.Vector2f64) []*component.Polyg
 
 func ColliderAtWithName(sys ICollisionSystem, pos linalg.Vector2f64, name string) *component.PolygonCollider {
 	return colliderAtWithFilter(sys, pos, func(col *component.PolygonCollider) bool {
-		return col.GetIGameObject2D().GetGameObject2D().Name == name
+		return col.I().Obj().Name == name
 	})
 }
 
 func CollidersAtWithName(sys ICollisionSystem, pos linalg.Vector2f64, name string) []*component.PolygonCollider {
 	return collidersAtWithFilter(sys, pos, func(col *component.PolygonCollider) bool {
-		return col.GetIGameObject2D().GetGameObject2D().Name == name
+		return col.I().Obj().Name == name
 	})
 }
 
 func ColliderAtWithTag(sys ICollisionSystem, pos linalg.Vector2f64, name string) *component.PolygonCollider {
 	return colliderAtWithFilter(sys, pos, func(col *component.PolygonCollider) bool {
-		_, ok := col.GetIGameObject2D().GetGameObject2D().Tags[name]
+		_, ok := col.I().Obj().Tags[name]
 		return ok
 	})
 }
 
 func CollidersAtWithTag(sys ICollisionSystem, pos linalg.Vector2f64, tag string) []*component.PolygonCollider {
 	return collidersAtWithFilter(sys, pos, func(col *component.PolygonCollider) bool {
-		_, ok := col.GetIGameObject2D().GetGameObject2D().Tags[tag]
+		_, ok := col.I().Obj().Tags[tag]
 		return ok
 	})
 }
 
 func ObjectAt(sys ICollisionSystem, pos linalg.Vector2f64) base.IGameObject2D {
 	if val := ColliderAt(sys, pos); val != nil {
-		return val.GetIGameObject2D()
+		return val.I()
 	}
 	return nil
 }
@@ -78,14 +78,14 @@ func ObjectsAt(sys ICollisionSystem, pos linalg.Vector2f64) []base.IGameObject2D
 	cols := CollidersAt(sys, pos)
 	ret := make([]base.IGameObject2D, 0)
 	for _, col := range cols {
-		ret = append(ret, col.GetIGameObject2D())
+		ret = append(ret, col.I())
 	}
 	return ret
 }
 
 func ObjectAtWithName(sys ICollisionSystem, pos linalg.Vector2f64, name string) base.IGameObject2D {
 	for _, iobj := range ObjectsAt(sys, pos) {
-		if name == iobj.GetGameObject2D().Name {
+		if name == iobj.Obj().Name {
 			return iobj
 		}
 	}
@@ -98,7 +98,7 @@ func HasAnyObjectAt(sys ICollisionSystem, pos linalg.Vector2f64) bool {
 
 func HasObjectAtWithName(sys ICollisionSystem, pos linalg.Vector2f64, name string) bool {
 	for _, iobj := range ObjectsAt(sys, pos) {
-		if name == iobj.GetGameObject2D().Name {
+		if name == iobj.Obj().Name {
 			return true
 		}
 	}
@@ -107,7 +107,7 @@ func HasObjectAtWithName(sys ICollisionSystem, pos linalg.Vector2f64, name strin
 
 func HasObjectAtWithTag(sys ICollisionSystem, pos linalg.Vector2f64, tag string) bool {
 	for _, iobj := range ObjectsAt(sys, pos) {
-		if _, ok := iobj.GetGameObject2D().Tags[tag]; ok {
+		if _, ok := iobj.Obj().Tags[tag]; ok {
 			return true
 		}
 	}
@@ -118,7 +118,7 @@ func HasObjectAtWithTags(sys ICollisionSystem, pos linalg.Vector2f64, tags []str
 	for _, iobj := range ObjectsAt(sys, pos) {
 		match := true
 		for _, tag := range tags {
-			if _, ok := iobj.GetGameObject2D().Tags[tag]; !ok {
+			if _, ok := iobj.Obj().Tags[tag]; !ok {
 				match = false
 				break
 			}
@@ -177,14 +177,14 @@ func HasColliderAtPolygonWithAny(sys ICollisionSystem, p physics.Polygon) bool {
 func HasColliderAtPolygonWithName(sys ICollisionSystem, p physics.Polygon, name string) bool {
 	pcWrapper := getPcwrapper(p)
 	return checkPolygonCollisionWithFilter(pcWrapper, sys.QueryNeighborCollidersWithCollider(pcWrapper), func(test *component.PolygonCollider) bool {
-		return test.GetIGameObject2D().GetGameObject2D().Name == name
+		return test.I().Obj().Name == name
 	})
 }
 
 func HasColliderAtPolygonWithTag(sys ICollisionSystem, p physics.Polygon, tag string) bool {
 	pcWrapper := getPcwrapper(p)
 	return checkPolygonCollisionWithFilter(pcWrapper, sys.QueryNeighborCollidersWithCollider(pcWrapper), func(test *component.PolygonCollider) bool {
-		_, ok := test.GetIGameObject2D().GetGameObject2D().Tags[tag]
+		_, ok := test.I().Obj().Tags[tag]
 		return ok
 	})
 }
@@ -196,17 +196,22 @@ func ColliderAtPolygonWithAny(sys ICollisionSystem, p physics.Polygon) *componen
 	})
 }
 
+func ColliderAtPolygonWithFilter(sys ICollisionSystem, p physics.Polygon, fx func(test *component.PolygonCollider) bool) *component.PolygonCollider {
+	pcWrapper := getPcwrapper(p)
+	return collectPolygonCollisionWithFilter(pcWrapper, sys.QueryNeighborCollidersWithCollider(pcWrapper), fx)
+}
+
 func ColliderAtPolygonWithName(sys ICollisionSystem, p physics.Polygon, name string) *component.PolygonCollider {
 	pcWrapper := getPcwrapper(p)
 	return collectPolygonCollisionWithFilter(pcWrapper, sys.QueryNeighborCollidersWithCollider(pcWrapper), func(testpc *component.PolygonCollider) bool {
-		return testpc.GetIGameObject2D().GetGameObject2D().Name == name
+		return testpc.I().Obj().Name == name
 	})
 }
 
 func ColliderAtPolygonWithTag(sys ICollisionSystem, p physics.Polygon, tag string) *component.PolygonCollider {
 	pcWrapper := getPcwrapper(p)
 	return collectPolygonCollisionWithFilter(pcWrapper, sys.QueryNeighborCollidersWithCollider(pcWrapper), func(testpc *component.PolygonCollider) bool {
-		_, ok := testpc.GetIGameObject2D().GetGameObject2D().Tags[tag]
+		_, ok := testpc.I().Obj().Tags[tag]
 		return ok
 	})
 }

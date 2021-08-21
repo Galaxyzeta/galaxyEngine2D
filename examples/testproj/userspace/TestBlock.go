@@ -62,12 +62,7 @@ func TestBlock_OnCreate() base.IGameObject2D {
 
 }
 
-func __TestBlock_OnStep(iobj base.IGameObject2D) {
-	// this := iobj.(*TestBlock)
-	// if time.Now().After(this.SelfDestructTime) {
-	// 	sdk.Destroy(iobj)
-	// }
-}
+func __TestBlock_OnStep(iobj base.IGameObject2D) {}
 
 func __TestBlock_OnDestroy(iobj base.IGameObject2D) {
 	this := iobj.(*TestBlock)
@@ -80,6 +75,6 @@ func __TestBlock_OnRender(obj base.IGameObject2D) {
 }
 
 // GetGameObject2D implements IGameObject2D.
-func (t TestBlock) GetGameObject2D() *base.GameObject2D {
+func (t TestBlock) Obj() *base.GameObject2D {
 	return t.GameObject2D
 }

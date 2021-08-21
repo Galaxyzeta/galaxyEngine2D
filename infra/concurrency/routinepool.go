@@ -19,6 +19,7 @@ type Future struct {
 	Err    error
 	Fn     func() (interface{}, error)
 	Done   bool
+	wg     *sync.WaitGroup
 }
 
 func NewExecutor(size int) *Executor {
@@ -63,6 +64,7 @@ func (e *Executor) jobExecutorRoutine(id int, wg sync.WaitGroup) {
 		executionCtx.Done = true
 		executionCtx.Err = err
 		executionCtx.Result = res
+		executionCtx.wg.Done()
 	}
 	wg.Done()
 }
@@ -77,12 +79,14 @@ func (e *Executor) Shutdown() {
 }
 
 // AsyncExecute a job asynchronously, returns a future object.
-func (e *Executor) AsyncExecute(fn func() (interface{}, error)) *Future {
+func (e *Executor) AsyncExecute(fn func() (interface{}, error), wg *sync.WaitGroup) *Future {
+	wg.Add(1)
 	future := Future{
 		Result: nil,
 		Err:    nil,
 		Fn:     fn,
 		Done:   false,
+		wg:     wg,
 	}
 	e.jobChannel[e.loadBalancer.Choose()] <- future
 	return &future

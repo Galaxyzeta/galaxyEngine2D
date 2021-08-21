@@ -19,8 +19,8 @@ type RigidBody2D struct {
 	UseGravity    bool
 	GravityVector SpeedVector
 	speed         *list.List
-	vspeed        float64
-	hspeed        float64
+	Vspeed        float64
+	Hspeed        float64
 
 	mu lock.SpinLock
 }
@@ -53,7 +53,11 @@ func (rb *RigidBody2D) AddForce(sv SpeedVector) *list.Element {
 	return rb.speed.PushBack(sv)
 }
 
+// RemoveForce removes the force which is a representation of list node. If force node is nil, will do nothing.
 func (rb *RigidBody2D) RemoveForce(forceNode *list.Element) {
+	if forceNode == nil {
+		return
+	}
 	rb.speed.Remove(forceNode)
 }
 
@@ -67,19 +71,19 @@ func (rb *RigidBody2D) GetSpeedList() *list.List {
 }
 
 func (rb *RigidBody2D) GetHspeed() float64 {
-	return rb.hspeed
+	return rb.Hspeed
 }
 
 func (rb *RigidBody2D) GetVspeed() float64 {
-	return rb.vspeed
+	return rb.Vspeed
 }
 
 // SetHspeed should only be called by system because it is a calculation property.
 func (rb *RigidBody2D) SetHspeed(hspeed float64) {
-	rb.hspeed = hspeed
+	rb.Hspeed = hspeed
 }
 
 // SetVspeed should only be called by system because it is a calculation property.
 func (rb *RigidBody2D) SetVspeed(vspeed float64) {
-	rb.vspeed = vspeed
+	rb.Vspeed = vspeed
 }

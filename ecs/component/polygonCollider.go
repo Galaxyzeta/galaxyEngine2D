@@ -25,6 +25,7 @@ func (pc *PolygonCollider) GetName() string {
 	return pc.Name
 }
 
-func (pc *PolygonCollider) GetIGameObject2D() base.IGameObject2D {
+// I returns IGameObject2D, the representation and abstraction of a gameObject.
+func (pc *PolygonCollider) I() base.IGameObject2D {
 	return pc.iobj2d
 }

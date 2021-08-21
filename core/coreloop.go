@@ -183,7 +183,7 @@ func (g *Application) doRender() {
 
 	for _, pool := range activePoolReplica {
 		for elem := range pool {
-			renderSortList = append(renderSortList, elem.GetGameObject2D())
+			renderSortList = append(renderSortList, elem.Obj())
 		}
 	}
 
@@ -197,7 +197,7 @@ func (g *Application) doRender() {
 }
 
 func (g *Application) doObjectRemoval(iobj2d base.IGameObject2D) {
-	obj2d := iobj2d.GetGameObject2D()
+	obj2d := iobj2d.Obj()
 	removeObjDefault(iobj2d, obj2d.IsActive)
 	for _, sys := range obj2d.GetSubscribedSystemMap() {
 		sys.Unregister(iobj2d)
@@ -229,8 +229,8 @@ func (g *Application) doPhysicalUpdate() {
 	mutexList[Mutex_ActivePool].Unlock()
 	for _, pool := range activePoolReplica {
 		for iobj2d, _ := range pool {
-			iobj2d.GetGameObject2D().Callbacks.OnStep(iobj2d)
-			iobj2d.GetGameObject2D().Sprite.DoFrameStep()
+			iobj2d.Obj().Callbacks.OnStep(iobj2d)
+			iobj2d.Obj().Sprite.DoFrameStep()
 		}
 	}
 	// 4. flush input buffer, only one subLoop can do this.
@@ -243,7 +243,7 @@ func (g *Application) doPhysicalUpdate() {
 	// 6. memorize current step
 	for _, pool := range activePoolReplica {
 		for iobj2d, _ := range pool {
-			tf := iobj2d.GetGameObject2D().GetComponent(component.NameTransform2D).(*component.Transform2D)
+			tf := iobj2d.Obj().GetComponent(component.NameTransform2D).(*component.Transform2D)
 			tf.MemXY()
 		}
 	}

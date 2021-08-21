@@ -68,7 +68,7 @@ func NewSpriteMeta(name string, frameNames ...string) {
 // NewSpriteInstance creates a new sprite.
 func NewSpriteInstance(sprMetaName string) (spr *SpriteInstance) {
 	ret := &SpriteInstance{
-		vbo:    GLNewVBO(1),
+		vbo:    vboManager.Borrow(),
 		frames: GetSpriteMeta(sprMetaName),
 		Animator: Animator{
 			currentFrame:   0,

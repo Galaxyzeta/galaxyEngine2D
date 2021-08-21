@@ -1,13 +1,14 @@
 package system
 
 import (
+	"container/list"
+	"fmt"
 	"math"
+	"sync"
 
 	"galaxyzeta.io/engine/base"
 	"galaxyzeta.io/engine/collision"
-	"galaxyzeta.io/engine/core"
 	"galaxyzeta.io/engine/ecs/component"
-	"galaxyzeta.io/engine/graphics"
 	cc "galaxyzeta.io/engine/infra/concurrency"
 	"galaxyzeta.io/engine/infra/logger"
 	"galaxyzeta.io/engine/linalg"
@@ -41,25 +42,28 @@ func NewPhysics2DSystem(prioriy int, csys collision.ICollisionSystem) *Physics2D
 func (s *Physics2DSystem) execute(item PhysicalComponentWrapper) {
 	linkedList := item.RigidBody2D.GetSpeedList()
 	var dx, dy float64
+	rmList := []*list.Element{}
 	for element := linkedList.Front(); element != nil; element = element.Next() {
 		val := element.Value.(component.SpeedVector)
 		deg := linalg.Deg2Rad(linalg.InvertDeg(val.Direction))
 		dx += val.Speed * math.Cos(deg)
 		dy += val.Speed * math.Sin(deg)
-		core.RenderCmdChan <- func() {
-			graphics.DrawSegment(linalg.NewSegmentf64(item.X(), item.Y(), item.X()+dx*10, item.Y()+dy*10), linalg.NewRgbaF64(0, 1, 0, 1))
-		}
+		// core.RenderCmdChan <- func() {
+		// 	graphics.DrawSegment(linalg.NewSegmentf64(item.X(), item.Y(), item.X()+dx*10, item.Y()+dy*10), linalg.NewRgbaF64(0, 1, 0, 1))
+		// }
 		// do speed atten
 		if val.Speed > 0 {
 			val.Speed -= val.Acceleration
 			if val.Speed < 0 {
 				s.logger.Debugf("remove force vector = %v", element)
-				linkedList.Remove(element)
+				rmList = append(rmList, element)
 				continue
 			}
 		}
 		element.Value = val
-
+	}
+	for _, toRemove := range rmList {
+		linkedList.Remove(toRemove)
 	}
 	// constant gravity effect
 	if item.UseGravity {
@@ -79,8 +83,8 @@ func (s *Physics2DSystem) execute(item PhysicalComponentWrapper) {
 	}
 
 	// set calculated property
-	item.SetHspeed(dx)
-	item.SetVspeed(dy)
+	item.RigidBody2D.SetHspeed(dx)
+	item.RigidBody2D.SetVspeed(dy)
 
 	// calc position
 	if item.PolygonCollider == nil {
@@ -89,21 +93,27 @@ func (s *Physics2DSystem) execute(item PhysicalComponentWrapper) {
 	// reject collision caused movement
 	if !collision.HasColliderAtPolygonWithTag(s.csys, item.Collider.Shift(dx, 0), "solid") {
 		item.Transform2D.Pos.X += dx
+	} else {
+		fmt.Print(1)
 	}
 	if !collision.HasColliderAtPolygonWithTag(s.csys, item.Collider.Shift(0, dy), "solid") {
 		item.Transform2D.Pos.Y += dy
+	} else {
+		fmt.Print(1)
 	}
 }
 
 // ===== IMPLEMENTATION =====
 
 func (s *Physics2DSystem) Execute(executor *cc.Executor) {
+	wg := sync.WaitGroup{}
 	for _, item := range s.obj2data {
 		executor.AsyncExecute(func() (interface{}, error) {
 			s.execute(item)
 			return nil, nil
-		})
+		}, &wg)
 	}
+	wg.Wait()
 }
 
 func (s *Physics2DSystem) GetSystemBase() *base.SystemBase {
@@ -115,9 +125,9 @@ func (s *Physics2DSystem) GetName() string {
 }
 
 func (s *Physics2DSystem) Register(iobj base.IGameObject2D) {
-	rb := iobj.GetGameObject2D().GetComponent(component.NameRigidBody2D).(*component.RigidBody2D)
-	tf := iobj.GetGameObject2D().GetComponent(component.NameTransform2D).(*component.Transform2D)
-	pc := iobj.GetGameObject2D().GetComponent(component.NamePolygonCollider).(*component.PolygonCollider)
+	rb := iobj.Obj().GetComponent(component.NameRigidBody2D).(*component.RigidBody2D)
+	tf := iobj.Obj().GetComponent(component.NameTransform2D).(*component.Transform2D)
+	pc := iobj.Obj().GetComponent(component.NamePolygonCollider).(*component.PolygonCollider)
 	s.obj2data[iobj] = PhysicalComponentWrapper{
 		RigidBody2D:     rb,
 		Transform2D:     tf,

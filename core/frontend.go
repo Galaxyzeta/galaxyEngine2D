@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"runtime"
+	"time"
 
 	"galaxyzeta.io/engine/graphics"
 	"galaxyzeta.io/engine/input/keys"
@@ -33,6 +34,24 @@ func keyboardCb(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, 
 	}
 }
 
+func mouseButtonCb(w *glfw.Window, button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey) {
+	switch action {
+	case glfw.Press:
+		SetInputBuffer(keys.Action_KeyPress, keys.Key(button))
+		SetInputBuffer(keys.Action_KeyHold, keys.Key(button))
+	case glfw.Release:
+		SetInputBuffer(keys.Action_KeyRelease, keys.Key(button))
+		UnsetInputBuffer(keys.Action_KeyHold, keys.Key(button))
+	}
+}
+
+func cursorCb(w *glfw.Window, xpos float64, ypos float64) {
+	mutexList[Mutex_CursorPos].Lock()
+	cursorX = xpos
+	cursorY = ypos
+	mutexList[Mutex_CursorPos].Unlock()
+}
+
 // InitOpenGL will be called at the very beginning of the whole program.
 func InitOpenGL(resolution linalg.Vector2f64, title string) *glfw.Window {
 	// glfw init
@@ -48,6 +67,8 @@ func InitOpenGL(resolution linalg.Vector2f64, title string) *glfw.Window {
 	}
 	window.MakeContextCurrent()
 	window.SetKeyCallback(keyboardCb)
+	window.SetMouseButtonCallback(mouseButtonCb)
+	window.SetCursorPosCallback(cursorCb)
 	glfw.SwapInterval(1)
 
 	// opengl init
@@ -60,7 +81,7 @@ func InitOpenGL(resolution linalg.Vector2f64, title string) *glfw.Window {
 	// install shaders
 	installShaders()
 	// init vbo pool
-	graphics.InitVboPool(32)
+	graphics.InitVboPool(128)
 
 	return window
 }
@@ -111,6 +132,8 @@ func RenderLoop(window *glfw.Window, renderFunc func(), sigKill <-chan struct{})
 	defer glfw.Terminate()
 	gl.ClearColor(0.5, 0.5, 1, 1)
 
+	vboBufferCheckTimestamp := time.Now()
+
 	for !window.ShouldClose() {
 
 		// check sigkill
@@ -122,14 +145,24 @@ func RenderLoop(window *glfw.Window, renderFunc func(), sigKill <-chan struct{})
 		// Do OpenGL stuff.
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-		// ---- render ----
+		// ---- exec pipeline cmd ----
 		renderFunc()
 		drawcalls := len(RenderCmdChan)
 		for i := 0; i < drawcalls; i++ {
 			// systemLogger.Debugf("exec external drawcall")
 			(<-RenderCmdChan)()
 		}
-		// ---- render ----
+
+		// ---- check buffer status ----
+		// buffer allocation must be done on rendering thread,
+		// else, will cause panic
+		if time.Since(vboBufferCheckTimestamp) > time.Second {
+			vboBufferCheckTimestamp = time.Now()
+			vboManager := graphics.GetVboManager()
+			if vboManager.Len() < 16 {
+				vboManager.Enlarge(32)
+			}
+		}
 
 		window.SwapBuffers()
 		glfw.PollEvents()

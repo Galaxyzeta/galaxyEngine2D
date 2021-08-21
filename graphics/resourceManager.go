@@ -20,6 +20,7 @@ var mutexList []sync.RWMutex
 
 const (
 	mutexScreenResolution = iota
+	mutexVboManager
 )
 
 func init() {
@@ -27,8 +28,10 @@ func init() {
 	spriteMetaMap = make(map[string]SpriteMeta)
 	frameMap = make(map[string]*GLFrame)
 
-	mutexList = make([]sync.RWMutex, 1, 8)
+	mutexList = make([]sync.RWMutex, 2, 8)
 	mutexList[mutexScreenResolution] = sync.RWMutex{}
+	mutexList[mutexVboManager] = sync.RWMutex{}
+
 }
 
 func SetScreenResolution(x float64, y float64) {
@@ -80,4 +83,11 @@ func InitCameraPool() {
 			Y: 480,
 		},
 	}
+}
+
+func GetVboManager() (ret *vboPool) {
+	mutexList[mutexVboManager].RLock()
+	ret = vboManager
+	mutexList[mutexVboManager].RUnlock()
+	return ret
 }

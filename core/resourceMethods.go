@@ -142,6 +142,14 @@ func GetCwd() string {
 	return cwd
 }
 
+func GetCursorPos() (x float64, y float64) {
+	mutexList[Mutex_CursorPos].RLock()
+	x = cursorX
+	y = cursorY
+	mutexList[Mutex_CursorPos].RUnlock()
+	return
+}
+
 // poolMapReplica
 func poolMapReplica(orig map[label]objPool) (ret map[label]objPool) {
 	ret = make(map[label]objPool, len(orig))

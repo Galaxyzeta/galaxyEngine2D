@@ -34,6 +34,14 @@ func (bb BoundingBox) GetTopRightPoint() linalg.Vector2f64 {
 	return bb[BB_TopRight]
 }
 
+func (bb BoundingBox) GetWidth() float64 {
+	return bb[BB_TopRight].X - bb[BB_TopLeft].X
+}
+
+func (bb BoundingBox) GetHeight() float64 {
+	return bb[BB_BotLeft].Y - bb[BB_TopLeft].Y
+}
+
 func SliceToBoundingBox(vecSlice []linalg.Vector2f64) BoundingBox {
 	array := [4]linalg.Vector2f64{}
 	copy(array[:], vecSlice)
