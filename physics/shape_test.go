@@ -3,6 +3,7 @@ package physics
 import (
 	"testing"
 
+	"galaxyzeta.io/engine/infra/require"
 	"galaxyzeta.io/engine/linalg"
 )
 
@@ -51,7 +52,33 @@ func TestSATCollision(t *testing.T) {
 	t.Log(poly4.Intersect(poly1)) // false
 	t.Log(poly4.Intersect(poly2))
 	t.Log(poly4.Intersect(poly3))
+}
 
+func TestRayIntersection(t *testing.T) {
+	ray := NewRay(linalg.NewVector2f64(1, 1), linalg.NewVector2f64(0, 0))
+	poly0 := NewPolygon(linalg.NewVector2f64Ptr(5, 5), linalg.NewVector2f64(0, 0), 0, []linalg.Vector2f64{
+		linalg.NewVector2f64(-1, -1),
+		linalg.NewVector2f64(-1, 1),
+		linalg.NewVector2f64(1, 1),
+		linalg.NewVector2f64(1, -1),
+	})
+	require.EqBool(ray.IntersectPolygon(*poly0), true)
+
+	poly1 := NewPolygon(linalg.NewVector2f64Ptr(-5, -5), linalg.NewVector2f64(0, 0), 0, []linalg.Vector2f64{
+		linalg.NewVector2f64(-1, -1),
+		linalg.NewVector2f64(-1, 1),
+		linalg.NewVector2f64(1, 1),
+		linalg.NewVector2f64(1, -1),
+	})
+	require.EqBool(ray.IntersectPolygon(*poly1), false)
+
+	poly2 := NewPolygon(linalg.NewVector2f64Ptr(0, 0), linalg.NewVector2f64(0, 0), 0, []linalg.Vector2f64{
+		linalg.NewVector2f64(-1, -1),
+		linalg.NewVector2f64(-1, 1),
+		linalg.NewVector2f64(1, 1),
+		linalg.NewVector2f64(1, -1),
+	})
+	require.EqBool(ray.IntersectPolygon(*poly2), true)
 }
 
 func TestCircle2Polygon(t *testing.T) {

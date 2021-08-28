@@ -147,25 +147,38 @@ func RenderLoop(window *glfw.Window, renderFunc func(), sigKill <-chan struct{})
 
 		// ---- exec pipeline cmd ----
 		renderFunc()
-		drawcalls := len(RenderCmdChan)
-		for i := 0; i < drawcalls; i++ {
-			// systemLogger.Debugf("exec external drawcall")
-			(<-RenderCmdChan)()
+		for _, gfxsys := range gfxSystemPriorityList {
+			gfxsys.Execute(app.executor)
 		}
+		executeAdditionalDrawCalls()
 
 		// ---- check buffer status ----
-		// buffer allocation must be done on rendering thread,
-		// else, will cause panic
-		if time.Since(vboBufferCheckTimestamp) > time.Second {
-			vboBufferCheckTimestamp = time.Now()
-			vboManager := graphics.GetVboManager()
-			if vboManager.Len() < 16 {
-				vboManager.Enlarge(32)
-			}
-		}
+		tryAddVboStock(&vboBufferCheckTimestamp)
 
 		window.SwapBuffers()
 		glfw.PollEvents()
 	}
 	fmt.Println("[System] OpenGL routine killed")
+}
+
+func executeAdditionalDrawCalls() {
+	drawcalls := len(RenderCmdChan)
+	for i := 0; i < drawcalls; i++ {
+		// systemLogger.Debugf("exec external drawcall")
+		(<-RenderCmdChan)()
+	}
+}
+
+// tryAddVboStock checks whether there's enough vbo for allocation.
+// if not, add more vbos to the stock.
+// buffer allocation must be done on rendering thread,
+// else, will cause panic
+func tryAddVboStock(vboBufferCheckTimestamp *time.Time) {
+	if time.Since(*vboBufferCheckTimestamp) > time.Second {
+		*vboBufferCheckTimestamp = time.Now()
+		vboManager := graphics.GetVboManager()
+		if vboManager.Len() < 16 {
+			vboManager.Enlarge(32)
+		}
+	}
 }

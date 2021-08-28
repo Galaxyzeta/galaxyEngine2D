@@ -10,12 +10,14 @@ import (
 )
 
 type SpriteInstance struct {
-	Animator
-	frames  SpriteMeta
-	OffsetX float64
-	OffsetY float64
-	Z       int
-	vbo     uint32
+	AnimationController
+	frames SpriteMeta
+	vbo    uint32
+}
+
+type RenderOptions struct {
+	Scale *linalg.Vector2f64
+	Pivot *physics.Pivot
 }
 
 // SpriteMeta is a sequence of frames that consists of an playable animation.
@@ -27,7 +29,8 @@ type GLFrame struct {
 	glTexture uint32
 }
 
-type Animator struct {
+// AnimationController controls the single animation of a sprite instance.
+type AnimationController struct {
 	currentFrame   int
 	updateInterval time.Duration
 	lastUpdateTime time.Time
@@ -70,7 +73,7 @@ func NewSpriteInstance(sprMetaName string) (spr *SpriteInstance) {
 	ret := &SpriteInstance{
 		vbo:    vboManager.Borrow(),
 		frames: GetSpriteMeta(sprMetaName),
-		Animator: Animator{
+		AnimationController: AnimationController{
 			currentFrame:   0,
 			updateInterval: time.Millisecond * 200,
 			lastUpdateTime: time.Now(),
@@ -80,17 +83,49 @@ func NewSpriteInstance(sprMetaName string) (spr *SpriteInstance) {
 	return ret
 }
 
-// Render sprite. Sprite must exist.
-func (spr *SpriteInstance) Render(camera *Camera, pos linalg.Point2f64) {
+func (spr *SpriteInstance) getRenderVertices(pos linalg.Vector2f64, renderOptions ...RenderOptions) []float64 {
 	currentGLImg := spr.frames[spr.currentFrame]
 	dx := float64(currentGLImg.img.Bounds().Dx())
 	dy := float64(currentGLImg.img.Bounds().Dy())
-	vertices := []float64{
-		pos.X, pos.Y, 0, 0, 0,
-		pos.X, pos.Y + dy, 0, 0, 1,
-		pos.X + dx, pos.Y + dy, 0, 1, 1,
-		pos.X + dx, pos.Y, 0, 1, 0,
+	var sx float64 = 1
+	var sy float64 = 1
+	var offset linalg.Vector2f64
+	if len(renderOptions) != 0 {
+		if scale := renderOptions[0].Scale; scale != nil {
+			sx = renderOptions[0].Scale.X
+			sy = renderOptions[0].Scale.Y
+		}
+		if anchorOption := renderOptions[0].Pivot; anchorOption != nil {
+			if fixedPoint := renderOptions[0].Pivot.Point; fixedPoint != nil {
+				offset = linalg.NewVector2f64(fixedPoint.X, fixedPoint.Y)
+			} else {
+				offset = anchorOption.Option.GetPivotPoint(physics.NewBoundingBox(
+					linalg.NewVector2f64(dx, 0),
+					linalg.NewVector2f64(0, 0),
+					linalg.NewVector2f64(0, dy),
+					linalg.NewVector2f64(dx, dy),
+				))
+				offset.X = -offset.X
+				offset.Y = -offset.Y
+			}
+		}
 	}
+	offset2Top := offset.Y * sy
+	offset2Left := offset.X * sx
+	offset2Right := (offset.X + dx) * sx
+	offset2Bot := (offset.Y + dy) * sy
+	return []float64{
+		pos.X + offset2Left, pos.Y + offset2Top, 0, 0, 0,
+		pos.X + offset2Left, pos.Y + offset2Bot, 0, 0, 1,
+		pos.X + offset2Right, pos.Y + offset2Bot, 0, 1, 1,
+		pos.X + offset2Right, pos.Y + offset2Top, 0, 1, 0,
+	}
+}
+
+// Render sprite. Sprite must exist.
+func (spr *SpriteInstance) Render(camera *Camera, pos linalg.Vector2f64, renderOptions ...RenderOptions) {
+	currentGLImg := spr.frames[spr.currentFrame]
+	vertices := spr.getRenderVertices(pos, renderOptions...)
 	linalg.WorldVertice2OpenGL(&vertices, 0, 5, camera.Pos, camera.Resolution, GetScreenResolution())
 	// vertices := []float64{
 	// 	-0.5, 0.5, 0, 0, 0,
@@ -107,8 +142,8 @@ func (spr *SpriteInstance) Render(camera *Camera, pos linalg.Point2f64) {
 	gl.Disable(gl.BLEND)
 }
 
-// Render sprite. Sprite must exist.
-func (spr *SpriteInstance) RenderWire(camera *Camera, pos linalg.Point2f64, color linalg.RgbaF64) {
+// Render sprite in wire mode. Sprite must exist.
+func (spr *SpriteInstance) RenderWire(camera *Camera, pos linalg.Vector2f64, color linalg.RgbaF64) {
 	currentGLImg := spr.frames[spr.currentFrame]
 	dx := float64(currentGLImg.img.Bounds().Dx())
 	dy := float64(currentGLImg.img.Bounds().Dy())
@@ -147,10 +182,10 @@ func (spr *SpriteInstance) GetHitbox(anchor *linalg.Vector2f64, pivot physics.Pi
 	f64w := float64(maxWidth)
 	f64h := float64(maxHeight)
 	retVert := []linalg.Vector2f64{
-		linalg.NewVector2f64(0, f64w),
+		linalg.NewVector2f64(f64w, 0),
 		linalg.NewVector2f64(0, 0),
-		linalg.NewVector2f64(f64h, 0),
-		linalg.NewVector2f64(f64h, f64w),
+		linalg.NewVector2f64(0, f64h),
+		linalg.NewVector2f64(f64w, f64h),
 	}
 	// get pivot point
 	var pivotPoint linalg.Vector2f64

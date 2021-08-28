@@ -30,6 +30,8 @@ func GameEngineTest() {
 			csys := system.NewQuadTreeCollision2DSystem(0, physics.NewRectangle(0, 0, 1024, 1024), 4, 128)
 			core.RegisterSystem(csys)
 			core.RegisterSystem(system.NewPhysics2DSystem(0, csys))
+			core.RegisterGfxSystem(system.NewRenderer2DSystem(0))
+
 			sdk.Create(objs.TestPlayer_OnCreate)
 			var i float64
 			var j float64

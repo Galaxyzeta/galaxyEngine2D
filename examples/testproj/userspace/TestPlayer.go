@@ -34,6 +34,7 @@ type TestPlayer struct {
 	tf     *component.Transform2D
 	rb     *component.RigidBody2D
 	pc     *component.PolygonCollider
+	sr     *component.SpriteRenderer
 	csys   collision.ICollisionSystem
 	logger *logger.Logger
 
@@ -54,20 +55,27 @@ func TestPlayer_OnCreate() base.IGameObject2D {
 
 	this := &TestPlayer{}
 
-	spr := graphics.NewSpriteInstance("spr_megaman")
+	animator := graphics.NewAnimator(graphics.StateSpritePair{
+		State: "run",
+		Spr:   graphics.NewSpriteInstance("spr_megaman"),
+	})
+
 	this.tf = component.NewTransform2D()
 	this.rb = component.NewRigidBody2D()
-	this.pc = component.NewPolygonCollider(spr.GetHitbox(&this.tf.Pos, physics.Pivot{
-		Option: physics.PivotOption_TopLeft,
-	}), this)
+	this.sr = component.NewSpriteRendererWithOptions(animator, this.tf, false, graphics.RenderOptions{
+		Pivot: &physics.Pivot{
+			Option: physics.PivotOption_BottomCenter,
+		},
+	})
+	this.pc = component.NewPolygonCollider(animator.Spr().GetHitbox(&this.tf.Pos, physics.Pivot{Option: physics.PivotOption_BottomCenter}), this)
 	this.GameObject2D = base.NewGameObject2D("player").
 		RegisterRender(__TestPlayer_OnRender).
 		RegisterStep(__TestPlayer_OnStep).
 		RegisterDestroy(__TestPlayer_OnDestroy).
 		RegisterComponentIfAbsent(this.tf).
 		RegisterComponentIfAbsent(this.rb).
-		RegisterComponentIfAbsent(this.pc)
-	this.GameObject2D.Sprite = spr
+		RegisterComponentIfAbsent(this.pc).
+		RegisterComponentIfAbsent(this.sr)
 
 	// Enable gravity
 	this.rb.UseGravity = true
@@ -78,6 +86,7 @@ func TestPlayer_OnCreate() base.IGameObject2D {
 
 	core.SubscribeSystem(this, system.NamePhysics2DSystem)
 	core.SubscribeSystem(this, system.NameCollision2Dsystem)
+	core.SubscribeSystem(this, system.NameRenderer2DSystem)
 
 	this.jumpPreventionTime = time.Millisecond * 50
 	this.lastJumpTime = time.Now()
@@ -99,9 +108,11 @@ func __TestPlayer_OnStep(obj base.IGameObject2D) {
 	// movement
 	if input.IsKeyHeld(keys.KeyA) && !collision.HasColliderAtPolygonWithTag(this.csys, this.pc.Collider.Shift(-this.speed*2, 0), "solid") {
 		dx = -this.speed
+		this.sr.Scale.X = -1
 		isKeyHeld = true
 	} else if input.IsKeyHeld(keys.KeyD) && !collision.HasColliderAtPolygonWithTag(this.csys, this.pc.Collider.Shift(this.speed*2, 0), "solid") {
 		dx = this.speed
+		this.sr.Scale.X = 1
 		isKeyHeld = true
 	}
 
@@ -145,9 +156,9 @@ func __TestPlayer_OnStep(obj base.IGameObject2D) {
 
 	// animation
 	if isKeyHeld {
-		this.Sprite.EnableAnimation()
+		this.sr.Spr().EnableAnimation()
 	} else {
-		this.Sprite.DisableAnimation()
+		this.sr.Spr().DisableAnimation()
 	}
 
 	vspeed := this.rb.GetVspeed()
@@ -170,7 +181,7 @@ func __TestPlayer_OnStep(obj base.IGameObject2D) {
 					this.rb.RemoveForce(this.jumpForceElem)
 					this.jumpForceElem = nil
 
-					this.tf.Pos.Y = val.Collider.GetAnchor().Y - this.pc.Collider.GetBoundingBox().GetHeight()
+					this.tf.Pos.Y += (val.Collider.GetAnchor().Y - this.pc.Collider.GetAnchor().Y) // snap to the ground
 					this.isAir = false
 					this.canJump = true
 				}
@@ -193,7 +204,6 @@ func __TestPlayer_OnStep(obj base.IGameObject2D) {
 
 func __TestPlayer_OnRender(obj base.IGameObject2D) {
 	this := obj.(*TestPlayer)
-	this.Sprite.Render(sdk.GetCamera(), linalg.Point2f64(this.tf.Pos))
 	this.csys.(*system.QuadTreeCollision2DSystem).Traverse(false, func(pc *component.PolygonCollider, qn *collision.QTreeNode, at collision.AreaType, idx int) bool {
 		graphics.DrawRectangle(qn.GetArea(), linalg.NewRgbaF64(0, 1, 0, 1))
 		if pc.I().Obj().Name == "player" {
@@ -203,17 +213,31 @@ func __TestPlayer_OnRender(obj base.IGameObject2D) {
 		return false
 	})
 
-	if this.canJump {
-		graphics.DrawSegment(linalg.NewSegmentf64(this.tf.X(), this.tf.Y(), this.tf.X()+32, this.tf.Y()), linalg.NewRgbaF64(0, 1, 0, 0))
-	} else {
-		graphics.DrawSegment(linalg.NewSegmentf64(this.tf.X(), this.tf.Y(), this.tf.X()+32, this.tf.Y()), linalg.NewRgbaF64(1, 0, 0, 0))
-	}
+	// mark sprite anchor center
+	srx := this.sr.GetHitbox().GetAnchor().X
+	sry := this.sr.GetHitbox().GetAnchor().Y
+	graphics.DrawSegment(linalg.NewSegmentf64(srx-4, sry, srx+4, sry), linalg.NewRgbaF64(0, 1, 0, 1))
+	graphics.DrawSegment(linalg.NewSegmentf64(srx, sry-4, srx, sry+4), linalg.NewRgbaF64(0, 1, 0, 1))
 
-	if this.isAir {
-		graphics.DrawSegment(linalg.NewSegmentf64(this.tf.X()+32, this.tf.Y(), this.tf.X()+64, this.tf.Y()), linalg.NewRgbaF64(0, 1, 0, 0))
-	} else {
-		graphics.DrawSegment(linalg.NewSegmentf64(this.tf.X()+32, this.tf.Y(), this.tf.X()+64, this.tf.Y()), linalg.NewRgbaF64(1, 0, 0, 0))
-	}
+	graphics.DrawRectangle(this.pc.Collider.GetBoundingBox().ToRectangle(), linalg.NewRgbaF64(0, 1, 0, 1))
+
+	// mark tf anchor center
+	tfx := this.tf.Pos.X
+	tfy := this.tf.Pos.Y
+	graphics.DrawSegment(linalg.NewSegmentf64(tfx-4, tfy, tfx+4, tfy), linalg.NewRgbaF64(1, 0, 0, 1))
+	graphics.DrawSegment(linalg.NewSegmentf64(tfx, tfy-4, tfx, tfy+4), linalg.NewRgbaF64(1, 0, 0, 1))
+
+	// if this.canJump {
+	// 	graphics.DrawSegment(linalg.NewSegmentf64(this.tf.X(), this.tf.Y(), this.tf.X()+32, this.tf.Y()), linalg.NewRgbaF64(0, 1, 0, 0))
+	// } else {
+	// 	graphics.DrawSegment(linalg.NewSegmentf64(this.tf.X(), this.tf.Y(), this.tf.X()+32, this.tf.Y()), linalg.NewRgbaF64(1, 0, 0, 0))
+	// }
+
+	// if this.isAir {
+	// 	graphics.DrawSegment(linalg.NewSegmentf64(this.tf.X()+32, this.tf.Y(), this.tf.X()+64, this.tf.Y()), linalg.NewRgbaF64(0, 1, 0, 0))
+	// } else {
+	// 	graphics.DrawSegment(linalg.NewSegmentf64(this.tf.X()+32, this.tf.Y(), this.tf.X()+64, this.tf.Y()), linalg.NewRgbaF64(1, 0, 0, 0))
+	// }
 }
 
 func __TestPlayer_OnDestroy(obj base.IGameObject2D) {

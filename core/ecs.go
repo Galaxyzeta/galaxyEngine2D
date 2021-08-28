@@ -6,21 +6,39 @@ import (
 	"galaxyzeta.io/engine/base"
 )
 
-// RegisterSystems to the game. Cannot disamount systems currently.
+// RegisterSystems to the game. Not thread safe.
 func RegisterSystem(sys ...base.ISystem) {
-	systemPriorityList = append(systemPriorityList, sys...)
-	SystemSort()
+	doRegisterSystem(&systemPriorityList, sys...)
+}
+
+// RegisterGfxSystem to the game. Will be called every render FPS in render loop. Not thread safe.
+func RegisterGfxSystem(sys ...base.ISystem) {
+	doRegisterGfxSystem(&gfxSystemPriorityList, sys...)
+}
+
+func doRegisterSystem(systemList *[]base.ISystem, sys ...base.ISystem) {
+	*systemList = append(*systemList, sys...)
+	doSystemSort(*systemList)
 	// re-assign pos
-	for i, s := range systemPriorityList {
+	for i, s := range *systemList {
 		system2Priority[s] = i
 		name2System[s.GetName()] = s
 	}
 }
 
-// SystemSort re-sort all registered systems' priorities from low to hign.
-func SystemSort() {
-	sort.Slice(systemPriorityList, func(i, j int) bool {
-		return systemPriorityList[i].GetSystemBase().GetPriority() > systemPriorityList[j].GetSystemBase().GetPriority()
+func doRegisterGfxSystem(gfxSystemList *[]base.ISystem, sys ...base.ISystem) {
+	*gfxSystemList = append(*gfxSystemList, sys...)
+	doSystemSort(gfxSystemPriorityList)
+	// re-assign pos
+	for i, s := range *gfxSystemList {
+		system2Priority[s] = i
+		name2System[s.GetName()] = s
+	}
+}
+
+func doSystemSort(systemList []base.ISystem) {
+	sort.Slice(systemList, func(i, j int) bool {
+		return systemList[i].GetSystemBase().GetPriority() > systemList[j].GetSystemBase().GetPriority()
 	})
 }
 
@@ -35,7 +53,10 @@ func UnregisterSystem(sys base.ISystem) {
 		systemPriorityList[i-1] = systemPriorityList[i]
 	}
 	systemPriorityList = systemPriorityList[:slen-1]
-	SystemSort()
+
+	// TODO need improvement
+	doSystemSort(systemPriorityList)
+	doSystemSort(gfxSystemPriorityList)
 }
 
 // SubscribeSystem registers an object into given system.

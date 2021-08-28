@@ -9,6 +9,15 @@ const BB_TopRight = 0
 const BB_BotLeft = 2
 const BB_BotRight = 3
 
+func NewBoundingBox(topRight, topLeft, botLeft, botRight linalg.Vector2f64) BoundingBox {
+	return BoundingBox{
+		topRight,
+		topLeft,
+		botLeft,
+		botRight,
+	}
+}
+
 func (bb BoundingBox) ToRectangle() Rectangle {
 	return Rectangle{
 		Width:  bb[BB_TopRight].X - bb[BB_TopLeft].X,

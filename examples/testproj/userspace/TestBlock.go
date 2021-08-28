@@ -14,9 +14,6 @@ import (
 	"galaxyzeta.io/engine/ecs/component"
 	"galaxyzeta.io/engine/ecs/system"
 	"galaxyzeta.io/engine/graphics"
-	"galaxyzeta.io/engine/linalg"
-	"galaxyzeta.io/engine/physics"
-	"galaxyzeta.io/engine/sdk"
 )
 
 // TestInputDetection is a golang GameObject2D testing template,
@@ -26,6 +23,7 @@ type TestBlock struct {
 	*base.GameObject2D
 	tf               *component.Transform2D
 	pc               *component.PolygonCollider
+	sr               *component.SpriteRenderer
 	SelfDestructTime time.Time
 	csys             collision.ICollisionSystem
 }
@@ -35,21 +33,23 @@ func TestBlock_OnCreate() base.IGameObject2D {
 	fmt.Println("SDK Call onCreate")
 	this := &TestBlock{}
 
-	spr := graphics.NewSpriteInstance("spr_block")
+	animator := graphics.NewAnimator(graphics.StateSpritePair{
+		State: "idle",
+		Spr:   graphics.NewSpriteInstance("spr_block"),
+	})
+
 	this.tf = component.NewTransform2D()
-	this.pc = component.NewPolygonCollider(spr.GetHitbox(&this.tf.Pos, physics.Pivot{
-		Option: physics.PivotOption_TopLeft,
-	}), this)
+	this.sr = component.NewSpriteRenderer(animator, this.tf, false)
+	this.pc = component.NewPolygonCollider(this.sr.GetHitbox(), this)
+	this.sr.Spr().DisableAnimation()
 
 	gameObject2D := base.NewGameObject2D("block").
 		RegisterRender(__TestBlock_OnRender).
 		RegisterStep(__TestBlock_OnStep).
 		RegisterDestroy(__TestBlock_OnDestroy).
 		RegisterComponentIfAbsent(this.tf).
-		RegisterComponentIfAbsent(this.pc)
-	gameObject2D.Sprite = spr
-	gameObject2D.Sprite.DisableAnimation()
-	gameObject2D.Sprite.Z = 10
+		RegisterComponentIfAbsent(this.pc).
+		RegisterComponentIfAbsent(this.sr)
 
 	gameObject2D.AppendTags("solid")
 
@@ -57,6 +57,7 @@ func TestBlock_OnCreate() base.IGameObject2D {
 	this.GameObject2D = gameObject2D
 
 	core.SubscribeSystem(this, system.NameCollision2Dsystem)
+	core.SubscribeSystem(this, system.NameRenderer2DSystem)
 
 	return this
 
@@ -70,8 +71,6 @@ func __TestBlock_OnDestroy(iobj base.IGameObject2D) {
 }
 
 func __TestBlock_OnRender(obj base.IGameObject2D) {
-	this := obj.(*TestBlock)
-	this.Sprite.Render(sdk.GetCamera(), linalg.Point2f64(this.tf.Pos))
 }
 
 // GetGameObject2D implements IGameObject2D.

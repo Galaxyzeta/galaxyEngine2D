@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -187,10 +186,6 @@ func (g *Application) doRender() {
 		}
 	}
 
-	// sort by z from far to near
-	sort.Slice(renderSortList, func(i, j int) bool {
-		return renderSortList[i].Sprite.Z > renderSortList[j].Sprite.Z
-	})
 	for _, elem := range renderSortList {
 		elem.Callbacks.OnRender(elem.GetIGameObject2D())
 	}
@@ -230,7 +225,6 @@ func (g *Application) doPhysicalUpdate() {
 	for _, pool := range activePoolReplica {
 		for iobj2d, _ := range pool {
 			iobj2d.Obj().Callbacks.OnStep(iobj2d)
-			iobj2d.Obj().Sprite.DoFrameStep()
 		}
 	}
 	// 4. flush input buffer, only one subLoop can do this.

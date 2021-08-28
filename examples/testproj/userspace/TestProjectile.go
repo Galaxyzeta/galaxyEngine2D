@@ -12,7 +12,6 @@ import (
 	"galaxyzeta.io/engine/essentials/rpg/rpgbase"
 	"galaxyzeta.io/engine/graphics"
 	"galaxyzeta.io/engine/linalg"
-	"galaxyzeta.io/engine/physics"
 	"galaxyzeta.io/engine/sdk"
 )
 
@@ -26,6 +25,7 @@ type TestProjectile struct {
 	tf   *component.Transform2D
 	rb   *component.RigidBody2D
 	pc   *component.PolygonCollider
+	sr   *component.SpriteRenderer
 	csys collision.ICollisionSystem
 
 	// ---- custom properties -----
@@ -52,24 +52,28 @@ func (t *TestProjectile) SetOwner(owner base.IGameObject2D) {
 func TestProjectile_OnCreate() base.IGameObject2D {
 	this := &TestProjectile{}
 
-	spr := graphics.NewSpriteInstance("spr_bullet")
+	animator := graphics.NewAnimator(graphics.StateSpritePair{
+		State: "idle",
+		Spr:   graphics.NewSpriteInstance("spr_bullet"),
+	})
 
 	this.tf = component.NewTransform2D()
 	this.rb = component.NewRigidBody2D()
-	this.pc = component.NewPolygonCollider(spr.GetHitbox(&this.tf.Pos, physics.Pivot{
-		Option: physics.PivotOption_TopLeft,
-	}), this)
+	this.sr = component.NewSpriteRenderer(animator, this.tf, false)
+	this.pc = component.NewPolygonCollider(this.sr.GetHitbox(), this)
 	this.csys = core.GetSystem(system.NameCollision2Dsystem).(collision.ICollisionSystem)
 
 	this.GameObject2D = base.NewGameObject2D("projectile").
 		RegisterComponentIfAbsent(this.tf).
 		RegisterComponentIfAbsent(this.rb).
 		RegisterComponentIfAbsent(this.pc).
+		RegisterComponentIfAbsent(this.sr).
 		RegisterStep(__TestProjectile_OnStep).
 		RegisterDestroy(__TestProjectile_OnDestroy).
 		RegisterRender(__TestProjectile_OnRender)
 
-	this.Sprite = spr
+	core.SubscribeSystem(this, system.NameRenderer2DSystem)
+	core.SubscribeSystem(this, system.NameCollision2Dsystem)
 
 	return this
 }
@@ -107,9 +111,7 @@ func __TestProjectile_OnStep(obj base.IGameObject2D) {
 }
 
 func __TestProjectile_OnRender(obj base.IGameObject2D) {
-	// Your code here ...
 	this := obj.(*TestProjectile)
-	this.Sprite.Render(sdk.GetCamera(), linalg.Point2f64(this.tf.Pos))
 	graphics.DrawRectangle(this.pc.Collider.GetBoundingBox().ToRectangle(), linalg.NewRgbaF64(1, 0, 0, 1))
 }
 

@@ -3,7 +3,6 @@ package base
 import (
 	"fmt"
 
-	"galaxyzeta.io/engine/graphics"
 	"galaxyzeta.io/engine/infra/concurrency/lock"
 	"galaxyzeta.io/engine/linalg"
 	"galaxyzeta.io/engine/physics"
@@ -28,7 +27,6 @@ type GameObject2D struct {
 	Hitbox     physics.IShape
 	Name       string
 	Tags       map[string]struct{}
-	Sprite     *graphics.SpriteInstance
 	Callbacks  *GameObjectFunctions
 	mu         lock.SpinLock
 	components map[string]IComponent
@@ -54,7 +52,6 @@ func NewGameObject2D(name string) *GameObject2D {
 		Hitbox:     nil,
 		Name:       name,
 		Tags:       make(map[string]struct{}),
-		Sprite:     &graphics.SpriteInstance{},
 		Callbacks:  &GameObjectFunctions{},
 		IsVisible:  true,
 		IsActive:   true,

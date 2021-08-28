@@ -42,3 +42,9 @@ func NewSystemBase(priority int) *SystemBase {
 		priority: priority,
 	}
 }
+
+func NewGraphicalSystemBase(priority int) *SystemBase {
+	return &SystemBase{
+		priority: priority,
+	}
+}

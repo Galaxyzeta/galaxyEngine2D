@@ -59,6 +59,10 @@ func NewVector2f64(x float64, y float64) Vector2f64 {
 	return Vector2f64{X: x, Y: y}
 }
 
+func NewVector2f64Ptr(x float64, y float64) *Vector2f64 {
+	return &Vector2f64{X: x, Y: y}
+}
+
 func (vec1 Vector2f64) Add(vec2 Vector2f64) Vector2f64 {
 	return Vector2f64{vec1.X + vec2.X, vec1.Y + vec2.Y}
 }

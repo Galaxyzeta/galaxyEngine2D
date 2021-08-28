@@ -1,8 +1,6 @@
 package physics
 
 import (
-	"math"
-
 	"galaxyzeta.io/engine/linalg"
 )
 
@@ -13,6 +11,13 @@ type Ray struct {
 
 type RaycastHit struct {
 	Hits []linalg.Point2f64
+}
+
+func NewRay(vector linalg.Vector2f64, origin linalg.Vector2f64) *Ray {
+	return &Ray{
+		Vec:    vector,
+		Origin: origin,
+	}
 }
 
 // Coefficient calculates the k and b value.
@@ -28,11 +33,13 @@ func (r Ray) IsVertical() bool {
 
 func (r Ray) IntersectPolygon(p Polygon) bool {
 	points := p.GetWorldVertices()
-	refVec := linalg.NewVector2f64(points[0].X-r.Origin.X, points[0].Y-r.Origin.Y)
-	sgn := math.Signbit(r.Vec.Mult(refVec))
+	seg := linalg.NewSegmentf64(points[0].X, points[0].Y, points[len(points)-1].X, points[len(points)-1].Y)
+	if r.IntersectSegment(seg) {
+		return true
+	}
 	for i := 1; i < len(points); i++ {
-		refVec = linalg.NewVector2f64(points[i].X-r.Origin.X, points[i].Y-r.Origin.Y)
-		if sgn != math.Signbit(r.Vec.Mult(refVec)) {
+		seg = linalg.NewSegmentf64(points[i].X, points[i].Y, points[i-1].X, points[i-1].Y)
+		if r.IntersectSegment(seg) {
 			return true
 		}
 	}
@@ -42,20 +49,20 @@ func (r Ray) IntersectPolygon(p Polygon) bool {
 func (r Ray) IntersectSegment(s linalg.Segmentf64) bool {
 	s = s.Standardize()
 	refVec1 := linalg.NewVector2f64(s.Point1.X-r.Origin.X, s.Point1.Y-r.Origin.Y)
-	if refVec1.Dot(r.Vec) < 0 {
+	refVec2 := linalg.NewVector2f64(s.Point2.X-r.Origin.X, s.Point2.Y-r.Origin.Y)
+	if refVec1.Dot(r.Vec) < 0 && refVec2.Dot(r.Vec) < 0 {
 		return false
 	}
-	refVec2 := linalg.NewVector2f64(s.Point2.X-r.Origin.X, s.Point2.Y-r.Origin.Y)
 	return refVec1.Mult(refVec2)*refVec2.Mult(refVec1) <= 0
 }
 
 func (r Ray) IntersectSegmentDetail(s linalg.Segmentf64) (bool, linalg.Vector2f64) {
 	s = s.Standardize()
 	refVec1 := linalg.NewVector2f64(s.Point1.X-r.Origin.X, s.Point1.Y-r.Origin.Y)
-	if refVec1.Dot(r.Vec) < 0 {
+	refVec2 := linalg.NewVector2f64(s.Point2.X-r.Origin.X, s.Point2.Y-r.Origin.Y)
+	if refVec1.Dot(r.Vec) < 0 && refVec2.Dot(r.Vec) < 0 {
 		return false, linalg.Vector2f64{}
 	}
-	refVec2 := linalg.NewVector2f64(s.Point2.X-r.Origin.X, s.Point2.Y-r.Origin.Y)
 	if refVec1.Mult(refVec2)*refVec2.Mult(refVec1) > 0 {
 		return false, linalg.Vector2f64{}
 	}
