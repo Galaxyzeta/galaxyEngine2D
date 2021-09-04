@@ -17,6 +17,13 @@ func StartApplication(cfg *core.AppConfig) {
 	g.Start()
 }
 
+// StartApplication starts the whole application from a file.
+// Resources are automatically loaded and initialized.
+func StartApplicationFromFile(filePath string) {
+	g := core.NewApplicationFromFile(filePath)
+	g.Start()
+}
+
 // ScreenResolution get current screen's resolution. It is thread-safe.
 func ScreenResolution() linalg.Vector2f64 {
 	return graphics.GetScreenResolution()

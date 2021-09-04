@@ -82,16 +82,18 @@ func (o *GameObject2D) RegisterComponent(com IComponent) *GameObject2D {
 	return o
 }
 
-func (o *GameObject2D) AppendTags(tags ...string) {
+func (o *GameObject2D) AppendTags(tags ...string) *GameObject2D {
 	for _, tag := range tags {
 		o.Tags[tag] = struct{}{}
 	}
+	return o
 }
 
-func (o *GameObject2D) RemoveTags(tags ...string) {
+func (o *GameObject2D) RemoveTags(tags ...string) *GameObject2D {
 	for _, tag := range tags {
 		delete(o.Tags, tag)
 	}
+	return o
 }
 
 func (o *GameObject2D) HasTag(target string) bool {

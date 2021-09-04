@@ -150,6 +150,25 @@ func GetCursorPos() (x float64, y float64) {
 	return
 }
 
+// RegisterCtor binds object name with its constructor. This methods
+// should be called only in init(), and only by provided generated code.
+// Will panic if dupicated entry was found.
+func RegisterCtor(name string, ctor func() base.IGameObject2D) {
+	if _, exist := ctorRegistry[name]; !exist {
+		ctorRegistry[name] = ctor
+	} else {
+		panic("duplicate constructor entry was found")
+	}
+}
+
+func GetCtor(name string) func() base.IGameObject2D {
+	ctor, ok := ctorRegistry[name]
+	if !ok {
+		panic("ctor entry with provided name does not exist")
+	}
+	return ctor
+}
+
 // poolMapReplica
 func poolMapReplica(orig map[label]objPool) (ret map[label]objPool) {
 	ret = make(map[label]objPool, len(orig))

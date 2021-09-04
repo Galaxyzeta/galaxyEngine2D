@@ -15,17 +15,19 @@ import (
 	"galaxyzeta.io/engine/sdk"
 )
 
+const __TestProjectile_Name = "obj_testProjectile"
+
+func init() {
+	core.RegisterCtor(__TestProjectile_Name, TestProjectile_OnCreate)
+}
+
 type TestProjectile struct {
 	// ---- requirements -----
 
 	*base.GameObject2D
 
 	// ---- components ----
-
-	tf   *component.Transform2D
-	rb   *component.RigidBody2D
-	pc   *component.PolygonCollider
-	sr   *component.SpriteRenderer
+	BasicComponentsBundle
 	csys collision.ICollisionSystem
 
 	// ---- custom properties -----
@@ -52,9 +54,9 @@ func (t *TestProjectile) SetOwner(owner base.IGameObject2D) {
 func TestProjectile_OnCreate() base.IGameObject2D {
 	this := &TestProjectile{}
 
-	animator := graphics.NewAnimator(graphics.StateSpritePair{
+	animator := graphics.NewAnimator(graphics.StateClipPair{
 		State: "idle",
-		Spr:   graphics.NewSpriteInstance("spr_bullet"),
+		Clip:  graphics.NewSpriteInstance("spr_bullet"),
 	})
 
 	this.tf = component.NewTransform2D()
@@ -74,6 +76,9 @@ func TestProjectile_OnCreate() base.IGameObject2D {
 
 	core.SubscribeSystem(this, system.NameRenderer2DSystem)
 	core.SubscribeSystem(this, system.NameCollision2Dsystem)
+
+	// - custom properties
+	this.dmg = 5
 
 	return this
 }

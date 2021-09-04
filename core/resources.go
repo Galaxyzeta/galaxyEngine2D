@@ -44,6 +44,8 @@ var gfxSystemPriorityList []base.ISystem = make([]base.ISystem, 0, 256)
 var system2Priority map[base.ISystem]int = make(map[base.ISystem]int)
 var name2System map[string]base.ISystem = make(map[string]base.ISystem)
 
+var ctorRegistry map[string]func() base.IGameObject2D = make(map[string]func() base.IGameObject2D)
+
 const MaxRenderListSize = 256
 
 // +------------------------+

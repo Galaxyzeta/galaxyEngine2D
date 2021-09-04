@@ -50,13 +50,33 @@ func NewFrame(name string, frameFile string) *GLFrame {
 	if err != nil {
 		panic(err)
 	}
-	ret := &GLFrame{
-		img: img,
-	}
-	GLRegisterTexture(img, &ret.glTexture)
+	ret := newGLFrame(img)
 	// save to graphic hashmap
 	frameMap[name] = ret
 	return ret
+}
+
+// newGLFrame creates a new frame and register texture into it.
+func newGLFrame(img image.Image) (ret *GLFrame) {
+	ret = &GLFrame{
+		img: img,
+	}
+	GLRegisterTexture(img, &ret.glTexture)
+	return ret
+}
+
+// BatchNewFrames read all pngs under a certain directory, and register them
+// to frameMap with a naming strategy.
+// If an error occurs, will panic.
+func BatchNewFrames(dirPath string, nameingFunc func(string) string) {
+	fileNames, images, err := ReadAllPngsUnderDirectory(dirPath)
+	if err != nil {
+		panic(err)
+	}
+	// fileNames and images has same length
+	for i := 0; i < len(fileNames); i++ {
+		frameMap[nameingFunc(fileNames[i])] = newGLFrame(images[i])
+	}
 }
 
 // NewSpriteMeta creates a new sprite meta from given sprite names.

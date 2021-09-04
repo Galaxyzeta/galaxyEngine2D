@@ -82,11 +82,14 @@ func (s *Renderer2DSystem) Register(iobj base.IGameObject2D) {
 		pos := s.binarySearchStatic(sr.Z)
 		copy(s.staticSpriteRenderers[pos:], s.staticSpriteRenderers[pos+1:])
 		s.staticSpriteRenderers[pos] = sr
+		s.indexer[sr] = pos
 	} else {
 		s.spriteRenderers = append(s.spriteRenderers, sr)
+		s.indexer[sr] = len(s.spriteRenderers) - 1
 	}
 }
 
+// TODO need test
 func (s *Renderer2DSystem) binarySearchStatic(z int64) int {
 	left, right := 0, len(s.staticSpriteRenderers)-1
 	for left <= right {
@@ -123,6 +126,7 @@ func (s *Renderer2DSystem) Unregister(iobj base.IGameObject2D) {
 		// because all elements will be sorted again before next rendering process.
 		s.spriteRenderers[index] = s.spriteRenderers[len(s.spriteRenderers)-1]
 		s.spriteRenderers = s.spriteRenderers[:len(s.spriteRenderers)-1]
+		delete(s.indexer, sr)
 	}
 }
 

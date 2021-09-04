@@ -1,0 +1,51 @@
+<level-config>
+	<level-metas>
+		<static>examples/testproj/static</static>
+		<frame-metas>
+			<dir name="megaman" prefix="frm_"/>
+		</frame-metas>
+		<sprite-metas>
+			<sprite name="spr_megaman">
+				<frame name="frm_megaman_running_01"/>
+				<frame name="frm_megaman_running_02"/>
+				<frame name="frm_megaman_running_03"/>
+			</sprite>
+			<sprite name="spr_block">
+				<frame name="frm_block"/>
+			</sprite>
+			<sprite name="spr_bullet">
+				<frame name="frm_bullet"/>
+			</sprite>
+			<sprite name="spr_miner">
+				<frame name="frm_miner_01"/>
+				<frame name="frm_miner_02"/>
+				<frame name="frm_miner_03"/>
+			</sprite>
+		</sprite-metas>
+		<object-metas>
+			<object name="obj_testBlock">
+			</object>
+			<object name="obj_testEnemy">
+			</object>
+			<object name="obj_testPlayer">
+			</object>
+			<object name="obj_testProjectile">
+			</object>
+		</object-metas>
+		<application-metas>
+			<resolution w="640" h="480"/>
+			<fps physics="60" render="60"/>
+			<parallelism>4</parallelism>
+		</application-metas>
+	</level-metas>
+	<level-details>
+		<object name="obj_testPlayer" x="0" y="0"/>
+		<object name="obj_testBlock" x="0" y="96"/>
+		<object name="obj_testBlock" x="16" y="96"/>
+		<object name="obj_testBlock" x="32" y="96"/>
+		<object name="obj_testBlock" x="48" y="96"/>
+		<object name="obj_testBlock" x="64" y="96"/>
+		<object name="obj_testBlock" x="80" y="96"/>
+		<object name="obj_testBlock" x="96" y="96"/>
+	</level-details>
+</level-config>

@@ -5,7 +5,6 @@ All user defined 2D objects should be put here.
 package objs
 
 import (
-	"fmt"
 	"time"
 
 	"galaxyzeta.io/engine/base"
@@ -16,8 +15,11 @@ import (
 	"galaxyzeta.io/engine/graphics"
 )
 
-// TestInputDetection is a golang GameObject2D testing template,
-// It illustrates how to use Galaxy2DEngine.
+const __TestBlock_Name = "obj_testBlock"
+
+func init() {
+	core.RegisterCtor(__TestBlock_Name, TestBlock_OnCreate)
+}
 
 type TestBlock struct {
 	*base.GameObject2D
@@ -30,12 +32,11 @@ type TestBlock struct {
 
 //TestImplementedGameObject2D_OnCreate is a public constructor.
 func TestBlock_OnCreate() base.IGameObject2D {
-	fmt.Println("SDK Call onCreate")
 	this := &TestBlock{}
 
-	animator := graphics.NewAnimator(graphics.StateSpritePair{
+	animator := graphics.NewAnimator(graphics.StateClipPair{
 		State: "idle",
-		Spr:   graphics.NewSpriteInstance("spr_block"),
+		Clip:  graphics.NewSpriteInstance("spr_block"),
 	})
 
 	this.tf = component.NewTransform2D()
@@ -66,8 +67,8 @@ func TestBlock_OnCreate() base.IGameObject2D {
 func __TestBlock_OnStep(iobj base.IGameObject2D) {}
 
 func __TestBlock_OnDestroy(iobj base.IGameObject2D) {
-	this := iobj.(*TestBlock)
-	this.csys.Unregister(iobj)
+	// this := iobj.(*TestBlock)
+	// this.csys.Unregister(iobj)
 }
 
 func __TestBlock_OnRender(obj base.IGameObject2D) {

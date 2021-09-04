@@ -24,6 +24,12 @@ import (
 	"galaxyzeta.io/engine/sdk"
 )
 
+const __TestPlayer_Name = "obj_testPlayer"
+
+func init() {
+	core.RegisterCtor(__TestPlayer_Name, TestPlayer_OnCreate)
+}
+
 // TestPlayer is a golang GameObject2D testing template,
 // It illustrates how to use Galaxy2DEngine.
 type TestPlayer struct {
@@ -31,11 +37,7 @@ type TestPlayer struct {
 	*base.GameObject2D
 
 	// -- system requirement
-	tf     *component.Transform2D
-	rb     *component.RigidBody2D
-	pc     *component.PolygonCollider
-	sr     *component.SpriteRenderer
-	csys   collision.ICollisionSystem
+	BasicComponentsBundle
 	logger *logger.Logger
 
 	// -- user defined
@@ -55,9 +57,9 @@ func TestPlayer_OnCreate() base.IGameObject2D {
 
 	this := &TestPlayer{}
 
-	animator := graphics.NewAnimator(graphics.StateSpritePair{
+	animator := graphics.NewAnimator(graphics.StateClipPair{
 		State: "run",
-		Spr:   graphics.NewSpriteInstance("spr_megaman"),
+		Clip:  graphics.NewSpriteInstance("spr_megaman"),
 	})
 
 	this.tf = component.NewTransform2D()
@@ -128,9 +130,11 @@ func __TestPlayer_OnStep(obj base.IGameObject2D) {
 		projectile.selfDestruct = time.Now().Add(time.Second * 5)
 		projectile.owner = this
 		cx, cy := core.GetCursorPos()
-		projectile.directionRad = math.Atan2(cy-this.tf.Y(), cx-this.tf.X())
+		ox := this.tf.X()
+		oy := this.tf.Y() - 16
+		projectile.directionRad = math.Atan2(cy-oy, cx-ox)
 		projectile.speed = 5
-		projectile.tf.Pos = this.tf.Pos
+		projectile.tf.Pos = linalg.NewVector2f64(ox, oy)
 
 		this.logger.Debugf("create bullet, mouse cursor is at %f, %f", cx, cy)
 	}

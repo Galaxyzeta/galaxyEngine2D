@@ -26,7 +26,8 @@ func NewQuadTreeCollision2DSystem(priority int, maintainanceArea physics.Rectang
 	}
 }
 
-// QuadTreeCollision2DSystem manages all game colliders with a grid based hashset.
+// QuadTreeCollision2DSystem manages all game colliders with a quad tree.
+// It provides ability to quickly locate colliders that might have a chance to collide.
 type QuadTreeCollision2DSystem struct {
 	*base.SystemBase
 	qt *collision.QuadTree
