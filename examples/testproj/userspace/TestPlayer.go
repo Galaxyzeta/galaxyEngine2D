@@ -107,6 +107,11 @@ func __TestPlayer_OnStep(obj base.IGameObject2D) {
 	var dx float64 = 0
 	var dy float64 = 0
 
+	// restart
+	if input.IsKeyPressed(keys.KeyR) {
+		sdk.ChangeScene("sc1")
+	}
+
 	// movement
 	if input.IsKeyHeld(keys.KeyA) && !collision.HasColliderAtPolygonWithTag(this.csys, this.pc.Collider.Shift(-this.speed*2, 0), "solid") {
 		dx = -this.speed
@@ -118,16 +123,11 @@ func __TestPlayer_OnStep(obj base.IGameObject2D) {
 		isKeyHeld = true
 	}
 
-	// // mouse
-	// if input.IsKeyPressed(keys.MouseButton1) {
-	// 	x, y := core.GetCursorPos()
-	// 	this.logger.Debugf("cx, cy = %f, %f", x, y)
-	// }
-
 	// shoot
 	if input.IsKeyPressed(keys.MouseButton1) {
 		projectile := sdk.Create(TestProjectile_OnCreate).(*TestProjectile)
-		projectile.selfDestruct = time.Now().Add(time.Second * 5)
+		projectile.selfDestructDuration = time.Second
+		projectile.createdAt = time.Now()
 		projectile.owner = this
 		cx, cy := core.GetCursorPos()
 		ox := this.tf.X()
@@ -246,7 +246,7 @@ func __TestPlayer_OnRender(obj base.IGameObject2D) {
 
 func __TestPlayer_OnDestroy(obj base.IGameObject2D) {
 	fmt.Println("SDK Call onDestroy cb")
-	sdk.Exit()
+	// sdk.Exit()
 }
 
 // GetGameObject2D implements IGameObject2D.

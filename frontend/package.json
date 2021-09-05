@@ -1,0 +1,16 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "description": "front end editor for galaxyengine2D",
+  "main": "main.js",
+  "dependencies": {
+    "electron": "^14.0.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run build && electron js/main.js"
+  },
+  "author": "galaxyzeta",
+  "license": "MIT"
+}

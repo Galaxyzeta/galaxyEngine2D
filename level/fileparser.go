@@ -20,13 +20,27 @@ type LevelMetas struct {
 }
 
 type LevelDetails struct {
-	ObjectDetails []ObjectDetail `xml:"object"`
+	Scene []Scene `xml:"scene"`
 }
 
 type ObjectDetail struct {
 	Name string `xml:"name,attr"`
 	X    int64  `xml:"x,attr"`
 	Y    int64  `xml:"y,attr"`
+}
+
+type Scene struct {
+	SceneName     string              `xml:"name,attr"`
+	SceneMetas    SceneMetas          `xml:"scene-metas"`
+	ObjectDetails ObjectDetailWrapper `xml:"objects"`
+}
+
+type ObjectDetailWrapper struct {
+	Objects []ObjectDetail `xml:"object"`
+}
+
+type SceneMetas struct {
+	RoomSize RWHAttr `xml:"room-size"`
 }
 
 type FrameMetas struct {
@@ -46,7 +60,7 @@ type ObjectMetas struct {
 	Objects []Object `xml:"object"`
 }
 
-type Reolution struct {
+type RWHAttr struct {
 	W float64 `xml:"w,attr"`
 	H float64 `xml:"h,attr"`
 }
@@ -65,10 +79,10 @@ type Frame struct {
 }
 
 type ApplicationMetas struct {
-	Resolution  Reolution `xml:"resolution"`
-	FPS         FPS       `xml:"fps"`
-	Parallelism int       `xml:"parallelism"`
-	Title       string    `xml:"title"`
+	Resolution  RWHAttr `xml:"resolution"`
+	FPS         FPS     `xml:"fps"`
+	Parallelism int     `xml:"parallelism"`
+	Title       string  `xml:"title"`
 }
 
 type FPS struct {

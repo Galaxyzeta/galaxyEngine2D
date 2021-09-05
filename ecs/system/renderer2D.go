@@ -2,7 +2,6 @@ package system
 
 import (
 	"sort"
-	"sync"
 
 	"galaxyzeta.io/engine/base"
 	"galaxyzeta.io/engine/ecs/component"
@@ -31,35 +30,35 @@ func NewRenderer2DSystem(priority int) *Renderer2DSystem {
 }
 
 func (ren *Renderer2DSystem) execute(_ *cc.Executor) {
-	wg := sync.WaitGroup{}
 	cam := graphics.GetCurrentCamera()
 	// sort spriteRenderers first
 	sort.SliceStable(ren.spriteRenderers, func(i, j int) bool {
 		return ren.spriteRenderers[i].Z < ren.spriteRenderers[j].Z
 	})
 	ptr1, ptr2 := 0, 0
+	idx := 0
 	for ptr1 < len(ren.spriteRenderers) && ptr2 < len(ren.staticSpriteRenderers) {
 		if ren.spriteRenderers[ptr1].Z >= ren.staticSpriteRenderers[ptr2].Z {
-			ren.doRenderExecute(&ptr1, cam, ren.spriteRenderers)
+			ren.doRenderExecute(&ptr1, &idx, cam, ren.spriteRenderers)
 		} else {
-			ren.doRenderExecute(&ptr2, cam, ren.staticSpriteRenderers)
+			ren.doRenderExecute(&ptr2, &idx, cam, ren.staticSpriteRenderers)
 		}
 	}
 	for ptr1 < len(ren.spriteRenderers) {
-		ren.doRenderExecute(&ptr1, cam, ren.spriteRenderers)
+		ren.doRenderExecute(&ptr1, &idx, cam, ren.spriteRenderers)
 	}
 	for ptr2 < len(ren.staticSpriteRenderers) {
-		ren.doRenderExecute(&ptr2, cam, ren.staticSpriteRenderers)
+		ren.doRenderExecute(&ptr2, &idx, cam, ren.staticSpriteRenderers)
 	}
-	wg.Wait()
 }
 
-func (ren *Renderer2DSystem) doRenderExecute(ptr *int, cam *graphics.Camera, targetSlice []*component.SpriteRenderer) {
+func (ren *Renderer2DSystem) doRenderExecute(ptr *int, idx *int, cam *graphics.Camera, targetSlice []*component.SpriteRenderer) {
 	sr := ren.spriteRenderers[*ptr]
 	sr.Render(cam)
-	ren.indexer[sr] = *ptr
+	ren.indexer[sr] = *idx
 	sr.Spr().DoFrameStep()
 	*ptr++
+	*idx++
 }
 
 // ===== IMPLEMENTATION =====
@@ -125,6 +124,8 @@ func (s *Renderer2DSystem) Unregister(iobj base.IGameObject2D) {
 		// order here is not important here
 		// because all elements will be sorted again before next rendering process.
 		s.spriteRenderers[index] = s.spriteRenderers[len(s.spriteRenderers)-1]
+		s.indexer[s.spriteRenderers[index]] = index
+		s.spriteRenderers[len(s.spriteRenderers)-1] = nil
 		s.spriteRenderers = s.spriteRenderers[:len(s.spriteRenderers)-1]
 		delete(s.indexer, sr)
 	}

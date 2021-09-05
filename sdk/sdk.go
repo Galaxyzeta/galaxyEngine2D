@@ -41,7 +41,7 @@ func Title() string {
 
 // ChangeScene changes current scene TODO
 func ChangeScene(sceneName string) {
-	core.SetCurrentSceneName(sceneName)
+	core.ChangeScene(sceneName)
 }
 
 // +------------------------+

@@ -11,6 +11,7 @@ import (
 	"galaxyzeta.io/engine/ecs/system"
 	"galaxyzeta.io/engine/essentials/rpg/rpgbase"
 	"galaxyzeta.io/engine/graphics"
+	"galaxyzeta.io/engine/infra/logger"
 	"galaxyzeta.io/engine/linalg"
 	"galaxyzeta.io/engine/sdk"
 )
@@ -31,20 +32,17 @@ type TestProjectile struct {
 	csys collision.ICollisionSystem
 
 	// ---- custom properties -----
-	dmg          int
-	selfDestruct time.Time
-	owner        base.IGameObject2D
-	speed        float64
-	directionRad float64
+	dmg                  int
+	selfDestructDuration time.Duration
+	createdAt            time.Time
+	owner                base.IGameObject2D
+	speed                float64
+	directionRad         float64
 }
 
 // GetGameObject2D implements IGameObject2D.
 func (t TestProjectile) Obj() *base.GameObject2D {
 	return t.GameObject2D
-}
-
-func (t *TestProjectile) SetSelfDestruct(at time.Time) {
-	t.selfDestruct = at
 }
 
 func (t *TestProjectile) SetOwner(owner base.IGameObject2D) {
@@ -87,6 +85,10 @@ func __TestProjectile_OnStep(obj base.IGameObject2D) {
 	// Your code here ...
 	this := obj.(*TestProjectile)
 
+	if time.Since(this.createdAt) >= this.selfDestructDuration {
+		sdk.Destroy(this)
+	}
+
 	val := collision.ColliderAtPolygonWithAny(this.csys, this.pc.Collider)
 	if val != nil {
 
@@ -122,4 +124,6 @@ func __TestProjectile_OnRender(obj base.IGameObject2D) {
 
 func __TestProjectile_OnDestroy(obj base.IGameObject2D) {
 	// Your code here ...
+	a := obj.(*TestProjectile)
+	logger.GlobalLogger.Infof("%v", a)
 }

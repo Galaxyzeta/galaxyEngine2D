@@ -37,7 +37,6 @@ func GlobalInitializer() {
 	renderSortList = make([]*base.GameObject2D, 0, 1024)
 
 	// init global stuff
-	sceneMap = make(map[string]*Scene)
 	currentSceneName = ""
 	inputBuffer = make([]map[keys.Key]struct{}, 3)
 	inputBuffer[KeyPress] = map[keys.Key]struct{}{}

@@ -1,3 +1,5 @@
 *.exe
 .vscode/
 __debug.bin
+frontend/node_modules
+frontend/js
