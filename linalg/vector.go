@@ -42,9 +42,6 @@ type Vector2i struct {
 }
 
 type Point2f32 Vector2f32
-type Point2f64 Vector2f64
-type Point2i64 Vector2i64
-type Point2i Vector2i
 
 func NewRgbaF64(r float64, g float64, b float64, a float64) RgbaF64 {
 	return RgbaF64{

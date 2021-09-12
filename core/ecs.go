@@ -63,7 +63,7 @@ func UnregisterSystem(sys base.ISystem) {
 // Will panic if the system was not found.
 func SubscribeSystem(iobj base.IGameObject2D, sysname string) {
 	sys := name2System[sysname]
-	sys.Register(iobj)
+	// sys.Register(iobj)	delayed execution
 	iobj.Obj().AppendSubscribedSystem(sys)
 }
 

@@ -49,24 +49,66 @@ func Destroy(obj base.IGameObject2D) {
 	doDestroy(obj, nil)
 }
 
+//
+func GetIGameobjects() (ret []base.IGameObject2D) {
+	mu := mutexList[Mutex_ActivePool]
+	mu.RLock()
+	for _, pool := range activePool {
+		for iobj, _ := range pool {
+			ret = append(ret, iobj)
+		}
+	}
+	mu.RUnlock()
+	return ret
+}
+
+func GetIGameobjectsMap() (ret map[base.IGameObject2D]struct{}) {
+	mu := mutexList[Mutex_ActivePool]
+	ret = make(map[base.IGameObject2D]struct{})
+	mu.RLock()
+	for _, pool := range activePool {
+		for iobj, _ := range pool {
+			ret[iobj] = struct{}{}
+		}
+	}
+	mu.RUnlock()
+	return ret
+}
+
 // Activate an object from deactive list, if it exists in it.
-func Activate(obj base.IGameObject2D) bool {
-	if ContainsInactiveDefault(obj) {
-		delete(inactivePool[Label_Default], obj)
-		activePool[Label_Default][obj] = struct{}{}
-		obj.Obj().IsActive = true
+func Activate(iobj base.IGameObject2D) bool {
+	if ContainsInactiveDefault(iobj) {
+		doActivate(iobj)
+		delete(inactivePool[Label_Default], iobj)
+		activePool[Label_Default][iobj] = struct{}{}
+		iobj.Obj().IsActive = true
+		systemLogger.Debugf("activate %v", iobj.Obj().Name)
 		return true
 	}
 	return false
 }
 
 // Deactivate an object from active list, if it exists in it.
-func Deactivate(obj base.IGameObject2D) bool {
-	if ContainsActiveDefault(obj) {
-		delete(activePool[Label_Default], obj)
-		inactivePool[Label_Default][obj] = struct{}{}
-		obj.Obj().IsActive = false
+func Deactivate(iobj base.IGameObject2D) bool {
+	if ContainsActiveDefault(iobj) {
+		doDeactivate(iobj)
+		delete(activePool[Label_Default], iobj)
+		inactivePool[Label_Default][iobj] = struct{}{}
+		iobj.Obj().IsActive = false
+		systemLogger.Debugf("deactivate %v", iobj.Obj().Name)
 		return true
 	}
 	return false
+}
+
+func doActivate(iobj base.IGameObject2D) {
+	for _, sys := range iobj.Obj().GetSubscribedSystemMap() {
+		sys.Activate(iobj)
+	}
+}
+
+func doDeactivate(iobj base.IGameObject2D) {
+	for _, sys := range iobj.Obj().GetSubscribedSystemMap() {
+		sys.Deactivate(iobj)
+	}
 }

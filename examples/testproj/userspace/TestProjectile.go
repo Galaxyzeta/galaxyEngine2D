@@ -11,6 +11,7 @@ import (
 	"galaxyzeta.io/engine/ecs/system"
 	"galaxyzeta.io/engine/essentials/rpg/rpgbase"
 	"galaxyzeta.io/engine/graphics"
+	"galaxyzeta.io/engine/infra/chrono"
 	"galaxyzeta.io/engine/infra/logger"
 	"galaxyzeta.io/engine/linalg"
 	"galaxyzeta.io/engine/sdk"
@@ -34,7 +35,7 @@ type TestProjectile struct {
 	// ---- custom properties -----
 	dmg                  int
 	selfDestructDuration time.Duration
-	createdAt            time.Time
+	ticker               *chrono.Ticker
 	owner                base.IGameObject2D
 	speed                float64
 	directionRad         float64
@@ -77,6 +78,7 @@ func TestProjectile_OnCreate() base.IGameObject2D {
 
 	// - custom properties
 	this.dmg = 5
+	this.ticker = chrono.NewTicker()
 
 	return this
 }
@@ -85,11 +87,11 @@ func __TestProjectile_OnStep(obj base.IGameObject2D) {
 	// Your code here ...
 	this := obj.(*TestProjectile)
 
-	if time.Since(this.createdAt) >= this.selfDestructDuration {
+	if this.ticker.TimeElapsed() > this.selfDestructDuration {
 		sdk.Destroy(this)
 	}
 
-	val := collision.ColliderAtPolygonWithAny(this.csys, this.pc.Collider)
+	val := collision.ColliderAtPolygonWithAny(this.csys, this.pc.Collider, collision.ActiveOnly)
 	if val != nil {
 
 		for tag := range val.I().Obj().Tags {
@@ -115,6 +117,8 @@ func __TestProjectile_OnStep(obj base.IGameObject2D) {
 	this.tf.Pos.X += this.speed * math.Cos(this.directionRad)
 	this.tf.Pos.Y += this.speed * math.Sin(this.directionRad)
 
+	// progress timer
+	this.ticker.Tick()
 }
 
 func __TestProjectile_OnRender(obj base.IGameObject2D) {

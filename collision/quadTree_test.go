@@ -33,19 +33,19 @@ func TestInsertIntoQuadTree(t *testing.T) {
 	t.Log(cnt)
 
 	t.Log("Q1==============")
-	for _, elem := range qt.QueryByPoint(linalg.NewVector2f64(1, 1)) {
+	for _, elem := range qt.QueryByPoint(linalg.NewVector2f64(1, 1), ActiveOnly) {
 		t.Log(elem.Collider.GetWorldVertices())
 	}
 	t.Log("Q2==============")
-	for _, elem := range qt.QueryByPoint(linalg.NewVector2f64(-1, 1)) {
+	for _, elem := range qt.QueryByPoint(linalg.NewVector2f64(-1, 1), ActiveOnly) {
 		t.Log(elem.Collider.GetWorldVertices())
 	}
 	t.Log("Q3==============")
-	for _, elem := range qt.QueryByPoint(linalg.NewVector2f64(-1, -1)) {
+	for _, elem := range qt.QueryByPoint(linalg.NewVector2f64(-1, -1), ActiveOnly) {
 		t.Log(elem.Collider.GetWorldVertices())
 	}
 	t.Log("Q4==============")
-	for _, elem := range qt.QueryByPoint(linalg.NewVector2f64(1, -1)) {
+	for _, elem := range qt.QueryByPoint(linalg.NewVector2f64(1, -1), ActiveOnly) {
 		t.Log(elem.Collider.GetWorldVertices())
 	}
 }

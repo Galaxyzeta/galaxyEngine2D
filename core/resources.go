@@ -2,11 +2,12 @@ package core
 
 import (
 	"sync"
+	"time"
 
 	"galaxyzeta.io/engine/base"
 	cc "galaxyzeta.io/engine/infra/concurrency"
 	"galaxyzeta.io/engine/input/keys"
-	"galaxyzeta.io/engine/level"
+	"galaxyzeta.io/engine/parser"
 )
 
 // +------------------------+
@@ -34,8 +35,8 @@ const Label_Default = "default"
 var activePool map[label]objPool
 var inactivePool map[label]objPool
 var labelPool map[label]struct{}
-var sceneCfgMap map[string]*level.Scene = make(map[string]*level.Scene) // a description of all objects and configs about the scene.
-var renderSortList []*base.GameObject2D                                 // this array is a stash used for depth base layer sorting.
+var sceneCfgMap map[string]*parser.Scene = make(map[string]*parser.Scene) // a description of all objects and configs about the scene.
+var renderSortList []*base.GameObject2D                                   // this array is a stash used for depth base layer sorting.
 
 var routinePool *cc.Executor
 
@@ -67,6 +68,7 @@ const (
 	Mutex_System
 	Mutex_CursorPos
 	Mutex_SceneCfgMap
+	Mutex_PhysicDeltaTime
 )
 
 var mutexList []*sync.RWMutex
@@ -117,3 +119,5 @@ var title string                        // the name of your window.
 var inputBuffer []map[keys.Key]struct{} // inputBuffer stores input event type, and its corresponding key status.
 var app *Application                    // app is the very core of your whole application.
 var cwd string                          // cwd is a shorthand for current working directory.
+var physicalDeltaTime time.Duration     // the time period between 2 physical updates.
+var renderDeltaTime time.Duration       // the time period between 2 render updates.

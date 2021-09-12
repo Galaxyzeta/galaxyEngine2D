@@ -22,7 +22,7 @@ func (s *EventSystem) execute(_ *cc.Executor) {
 	// iterate over the list
 	for i, cur := 0, s.messengers.Front(); i < totalLen; i, cur = i+1, cur.Next() {
 		messenger := cur.Value.(*component.Messenger)
-		if col := collision.ColliderAtPolygonWithFilter(s.csys, messenger.Pc.Collider, messenger.ShouldTrigger); col != nil {
+		if col := collision.ColliderAtPolygonWithFilter(s.csys, messenger.Pc.Collider, messenger.ShouldTrigger, collision.All); col != nil {
 			messenger.Impact(col)
 		}
 		cur = cur.Next()

@@ -12,7 +12,7 @@ type SpriteRenderer struct {
 	*graphics.Animator
 	Name     string
 	tf       *Transform2D
-	Z        int64             // render depth. bigger Z means deeper behind current view.
+	z        int64             // render depth. bigger Z means deeper behind current view.
 	Scale    linalg.Vector2f64 // scale value on X and Y
 	Pivot    *physics.Pivot
 	Offset   linalg.Vector2f64 // the offset from sprite to player, negative value means drawing at left of an object.
@@ -33,6 +33,9 @@ func NewSpriteRenderer(animator *graphics.Animator, tf *Transform2D, isStatic bo
 		Enabled:  true,
 		Scale:    linalg.NewVector2f64(1, 1),
 		Name:     NameSpriteRenderer,
+		Pivot: &physics.Pivot{
+			Option: physics.PivotOption_TopLeft,
+		},
 		isStatic: isStatic,
 	}
 }
@@ -42,7 +45,9 @@ func NewSpriteRendererWithOptions(animator *graphics.Animator, tf *Transform2D, 
 	if options.Scale != nil {
 		sr.Scale = *options.Scale
 	}
-	sr.Pivot = options.Pivot
+	if options.Pivot != nil {
+		sr.Pivot = options.Pivot
+	}
 	return sr
 }
 
@@ -62,6 +67,18 @@ func (sr *SpriteRenderer) IsStatic() bool {
 	return sr.isStatic
 }
 
+func (sr *SpriteRenderer) Z() int64 {
+	return sr.z
+}
+
+func (sr *SpriteRenderer) PostRender() {
+	sr.Spr().DoFrameStep()
+}
+
+func (sr *SpriteRenderer) SetZ(z int64) {
+	sr.z = z
+}
+
 func (sr *SpriteRenderer) GetHitbox() physics.Polygon {
-	return sr.Animator.Spr().GetHitbox(&sr.tf.Pos, physics.Pivot{Option: physics.PivotOption_Disable})
+	return sr.Animator.Spr().GetHitbox(&sr.tf.Pos, physics.Pivot{Option: sr.Pivot.Option})
 }

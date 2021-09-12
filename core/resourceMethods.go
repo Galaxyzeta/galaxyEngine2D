@@ -2,12 +2,13 @@ package core
 
 import (
 	"sync"
+	"time"
 
 	"galaxyzeta.io/engine/base"
 	"galaxyzeta.io/engine/input/keys"
 )
 
-func addObjDefault(obj base.IGameObject2D, isActive bool) {
+func addObjDefault(iobj base.IGameObject2D, isActive bool) {
 	var targetPool map[label]objPool
 	var muEnum MutexIndex
 	if isActive {
@@ -18,8 +19,18 @@ func addObjDefault(obj base.IGameObject2D, isActive bool) {
 		muEnum = Mutex_InactivePool
 	}
 	mutexList[muEnum].Lock()
-	targetPool[Label_Default][obj] = struct{}{}
+	targetPool[Label_Default][iobj] = struct{}{}
 	mutexList[muEnum].Unlock()
+	// -- register system --
+	// this must be an delayed execution
+	// because when loading from external level file, the position of
+	// the object is set after calling constructor.
+	// If we register to system immediately in ctor, will cause system
+	// to register related component using the obj's zero position.
+	obj := iobj.Obj()
+	for _, sys := range obj.GetSubscribedSystemMap() {
+		sys.Register(iobj)
+	}
 }
 
 // ===== Render List =====
@@ -167,6 +178,14 @@ func GetCtor(name string) func() base.IGameObject2D {
 		panic("ctor entry with provided name does not exist")
 	}
 	return ctor
+}
+
+func GetPhysicsDeltaTime() (ret time.Duration) {
+	mu := mutexList[Mutex_PhysicDeltaTime]
+	mu.RLock()
+	ret = physicalDeltaTime
+	mu.RUnlock()
+	return
 }
 
 // poolMapReplica

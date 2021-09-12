@@ -16,11 +16,12 @@ var currentCamera int
 
 var screenResolution *linalg.Vector2f64 = &linalg.Vector2f64{}
 
-var mutexList []sync.RWMutex
+var mutexList []*sync.RWMutex
 
 const (
 	mutexScreenResolution = iota
 	mutexVboManager
+	mutexCurrentCamera
 )
 
 func init() {
@@ -28,9 +29,10 @@ func init() {
 	spriteMetaMap = make(map[string]SpriteMeta)
 	frameMap = make(map[string]*GLFrame)
 
-	mutexList = make([]sync.RWMutex, 2, 8)
-	mutexList[mutexScreenResolution] = sync.RWMutex{}
-	mutexList[mutexVboManager] = sync.RWMutex{}
+	mutexList = make([]*sync.RWMutex, 0, 8)
+	for i := 0; i < cap(mutexList); i++ {
+		mutexList = append(mutexList, &sync.RWMutex{})
+	}
 
 }
 
@@ -66,22 +68,37 @@ func GetFrame(name string) *GLFrame {
 }
 
 func GetCurrentCamera() *Camera {
-	return cameraPool[currentCamera]
+	return GetCamera(currentCamera)
 }
 
-// InitCameraPool inits camera pool. It will be called by core. Do not use this in ypur game logic.
-func InitCameraPool() {
+func GetCurrentCameraIndex() (index int) {
+	mu := mutexList[mutexCurrentCamera]
+	mu.RLock()
+	index = currentCamera
+	mu.RUnlock()
+	return
+}
+
+func GetCamera(index int) *Camera {
+	return cameraPool[index]
+}
+
+func SetCurrentCamera(index int) {
+	if index > len(cameraPool) {
+		panic("invalid index, should be less than the length of cameraPool")
+	}
+	mu := mutexList[mutexCurrentCamera]
+	mu.Lock()
+	currentCamera = index
+	mu.Unlock()
+}
+
+// InitCameraPool inits camera pool with given camera counts. It will be called by core. Do not use this in ypur game logic.
+func InitCameraPool(camCnt int) {
 	// init camera list
-	cameraPool = make([]*Camera, 1, 4)
-	cameraPool[0] = &Camera{
-		Pos: linalg.Point2f64{
-			X: 0,
-			Y: 0,
-		},
-		Resolution: linalg.Vector2f64{
-			X: 640,
-			Y: 480,
-		},
+	cameraPool = make([]*Camera, 0, camCnt)
+	for i := 0; i < camCnt; i++ {
+		cameraPool = append(cameraPool, NewCamera(linalg.NewVector2f64(0, 0), linalg.NewVector2f64(640, 480)))
 	}
 }
 

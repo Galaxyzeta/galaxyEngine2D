@@ -1,6 +1,7 @@
 <level-config>
 	<level-metas>
 		<static>examples/testproj/static</static>
+		<camera-count>2</camera-count>
 		<frame-metas>
 			<dir name="megaman" prefix="frm_"/>
 		</frame-metas>
@@ -31,6 +32,8 @@
 			</object>
 			<object name="obj_testProjectile">
 			</object>
+			<object name="obj_testDeactivator">
+			</object>
 		</object-metas>
 		<application-metas>
 			<resolution w="640" h="480"/>
@@ -42,9 +45,13 @@
 		<scene name="sc1">
 			<scene-metas>
 				<room-size w="1024" h="1024"/>
+				<cameras>
+					<camera index="0" x="0" y="0"/>
+					<camera index="1" x="128" y="128"/>
+				</cameras>
 			</scene-metas>
 			<objects>
-				<object name="obj_testPlayer" x="0" y="0"/>
+				<object name="obj_testPlayer" x="0" y="32"/>
 				<object name="obj_testBlock" x="0" y="96"/>
 				<object name="obj_testBlock" x="16" y="96"/>
 				<object name="obj_testBlock" x="32" y="96"/>
@@ -52,6 +59,7 @@
 				<object name="obj_testBlock" x="64" y="96"/>
 				<object name="obj_testBlock" x="80" y="96"/>
 				<object name="obj_testBlock" x="96" y="96"/>
+				<object name="obj_testDeactivator" x="0" y="0"/>
 			</objects>
 		</scene>
 	</level-details>

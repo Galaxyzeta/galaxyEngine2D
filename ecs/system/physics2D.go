@@ -40,6 +40,12 @@ func NewPhysics2DSystem(prioriy int, csys collision.ICollisionSystem) *Physics2D
 }
 
 func (s *Physics2DSystem) execute(item PhysicalComponentWrapper) {
+	// if item dynamically follows an SpriteRenderer's hitbox,
+	// set its item.Collider dynamically.
+	if item.Sr != nil {
+		item.Collider = item.Sr.GetHitbox()
+	}
+	// handle speed vectors
 	linkedList := item.RigidBody2D.GetSpeedList()
 	var dx, dy float64
 	rmList := []*list.Element{}
@@ -71,7 +77,7 @@ func (s *Physics2DSystem) execute(item PhysicalComponentWrapper) {
 		gdeg := linalg.Deg2Rad(linalg.InvertDeg(item.GravityVector.Direction))
 		gdx := item.GravityVector.Speed * math.Cos(gdeg)
 		gdy := item.GravityVector.Speed * math.Sin(gdeg)
-		if collision.HasColliderAtPolygonWithTag(s.csys, item.Collider.Shift(dx+gdx, dy+gdy), "solid") {
+		if collision.HasColliderAtPolygonWithTag(s.csys, item.Collider.Shift(dx+gdx, dy+gdy), "solid", collision.ActiveOnly) {
 			// grounded
 			item.GravityVector.Speed = 0
 		} else {
@@ -91,12 +97,12 @@ func (s *Physics2DSystem) execute(item PhysicalComponentWrapper) {
 		return
 	}
 	// reject collision caused movement
-	if !collision.HasColliderAtPolygonWithTag(s.csys, item.Collider.Shift(dx, 0), "solid") {
+	if !collision.HasColliderAtPolygonWithTag(s.csys, item.Collider.Shift(dx, 0), "solid", collision.ActiveOnly) {
 		item.Transform2D.Pos.X += dx
 	} else {
 		fmt.Print(1)
 	}
-	if !collision.HasColliderAtPolygonWithTag(s.csys, item.Collider.Shift(0, dy), "solid") {
+	if !collision.HasColliderAtPolygonWithTag(s.csys, item.Collider.Shift(0, dy), "solid", collision.ActiveOnly) {
 		item.Transform2D.Pos.Y += dy
 	} else {
 		fmt.Print(1)
@@ -137,4 +143,12 @@ func (s *Physics2DSystem) Register(iobj base.IGameObject2D) {
 
 func (s *Physics2DSystem) Unregister(iobj base.IGameObject2D) {
 	delete(s.obj2data, iobj)
+}
+
+func (s *Physics2DSystem) Activate(iobj base.IGameObject2D) {
+	s.Register(iobj)
+}
+
+func (s *Physics2DSystem) Deactivate(iobj base.IGameObject2D) {
+	s.Unregister(iobj)
 }

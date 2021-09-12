@@ -80,6 +80,8 @@ func NewApplication(cfg *AppConfig) *Application {
 	if cfg.Parallelism < 1 {
 		cfg.Parallelism = 1
 	}
+	physicalDeltaTime = time.Second / time.Duration(cfg.RenderFps)
+	renderDeltaTime = time.Second / time.Duration(cfg.PhysicalFps)
 	app = &Application{
 		initFunc:          cfg.InitFunc,
 		status:            GameLoopStats_Initialized,
@@ -88,8 +90,8 @@ func NewApplication(cfg *AppConfig) *Application {
 		unregisterChannel: make(chan resourceAccessRequest, DeconstructionChannelSize),
 		physicalFPS:       time.Duration(cfg.PhysicalFps),
 		renderFPS:         time.Duration(cfg.RenderFps),
-		renderTicker:      time.NewTicker(time.Second / time.Duration(cfg.RenderFps)),
-		physicalTicker:    time.NewTicker(time.Second / time.Duration(cfg.PhysicalFps)),
+		renderTicker:      time.NewTicker(physicalDeltaTime),
+		physicalTicker:    time.NewTicker(renderDeltaTime),
 		executor:          cc.NewExecutor(cfg.Parallelism),
 		wg:                &sync.WaitGroup{},
 		sigKill:           make(chan struct{}, 1),
@@ -97,7 +99,6 @@ func NewApplication(cfg *AppConfig) *Application {
 	}
 
 	graphics.SetScreenResolution(cfg.Resolution.X, cfg.Resolution.Y)
-	graphics.InitCameraPool()
 
 	return app
 }
@@ -115,9 +116,9 @@ func (app *Application) Start() {
 	// bootup executor
 	app.executor.Run()
 
+	app.running = true
 	go app.runWorkerLoop()
 
-	app.running = true
 	app.status = GameLoopStats_Running
 
 	// --- begin render infinite loop
@@ -187,7 +188,9 @@ func (g *Application) doRender() {
 	}
 
 	for _, elem := range renderSortList {
-		elem.Callbacks.OnRender(elem.GetIGameObject2D())
+		if fx := elem.Callbacks.OnRender; fx != nil {
+			fx(elem.GetIGameObject2D())
+		}
 	}
 }
 

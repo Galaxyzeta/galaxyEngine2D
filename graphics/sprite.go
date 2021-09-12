@@ -146,7 +146,7 @@ func (spr *SpriteInstance) getRenderVertices(pos linalg.Vector2f64, renderOption
 func (spr *SpriteInstance) Render(camera *Camera, pos linalg.Vector2f64, renderOptions ...RenderOptions) {
 	currentGLImg := spr.frames[spr.currentFrame]
 	vertices := spr.getRenderVertices(pos, renderOptions...)
-	linalg.WorldVertice2OpenGL(&vertices, 0, 5, camera.Pos, camera.Resolution, GetScreenResolution())
+	linalg.WorldVertice2OpenGL(&vertices, 0, 5, camera.pos, camera.resolution, GetScreenResolution())
 	// vertices := []float64{
 	// 	-0.5, 0.5, 0, 0, 0,
 	// 	-0.5, -0.5, 0, 0, 1,
@@ -173,7 +173,7 @@ func (spr *SpriteInstance) RenderWire(camera *Camera, pos linalg.Vector2f64, col
 		pos.X + dx, pos.Y + dy, 0, color.X, color.Y, color.Z, color.W,
 		pos.X + dx, pos.Y, 0, color.X, color.Y, color.Z, color.W,
 	}
-	linalg.WorldVertice2OpenGL(&vertices, 0, 7, camera.Pos, camera.Resolution, GetScreenResolution())
+	linalg.WorldVertice2OpenGL(&vertices, 0, 7, camera.pos, camera.resolution, GetScreenResolution())
 
 	gl.Enable(gl.BLEND)
 	GLEnableWireframe()

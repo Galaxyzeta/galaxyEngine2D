@@ -2,8 +2,8 @@ package collision
 
 import (
 	"sync/atomic"
-	"time"
 
+	"galaxyzeta.io/engine/base"
 	"galaxyzeta.io/engine/ecs/component"
 	"galaxyzeta.io/engine/infra/concurrency/lock"
 	"galaxyzeta.io/engine/infra/logger"
@@ -31,7 +31,7 @@ var idGenerator int64
 var qtlogger *logger.Logger = logger.New("QuadTree")
 
 func init() {
-	qtlogger.Disable()
+	// qtlogger.Disable()
 }
 
 type QuadTree struct {
@@ -41,20 +41,58 @@ type QuadTree struct {
 	minDivision float64
 	looseOffset float64 // once a collider entered a cell, in how much offset to determine a collider has left the original cell.
 	mu          *lock.SpinLock
+	lookup      map[base.IGameObject2D]*QTreeNode
 }
 
 type QTreeNode struct {
-	id          int64
-	items       []*component.PolygonCollider
-	inlineItems []*component.PolygonCollider // inlineItems stores items that is actually on the boundary
-	children    []*QTreeNode                 // points to 4 sub dimensions
-	parent      *QTreeNode
-	area        physics.Rectangle
-	minDivision float64
-	loadFactor  int // how many items can be held at most in this node
+	id            int64
+	items         []*component.PolygonCollider
+	inlineItems   []*component.PolygonCollider // inlineItems stores items that is actually on the boundary
+	inactiveItems []*component.PolygonCollider // inactiveItems stors deactivated items
+	children      []*QTreeNode                 // points to 4 sub dimensions
+	parent        *QTreeNode
+	area          physics.Rectangle
+	minDivision   float64
+	loadFactor    int       // how many items can be held at most in this node
+	quadTree      *QuadTree // always point to the root
 }
 
 type QTreeTraverseFunc func(*component.PolygonCollider, *QTreeNode, AreaType, int) bool
+
+type qtreeNodeCollectorFunc func() []*component.PolygonCollider
+
+type QueryMode int8
+
+const (
+	ActiveOnly   QueryMode = 0
+	InactiveOnly QueryMode = 1
+	All          QueryMode = 2
+)
+
+func (qt *QTreeNode) collectorFxCollectActive() []*component.PolygonCollider {
+	return qt.GetActiveItems()
+}
+
+func (qt *QTreeNode) collectorFxCollectInactive() []*component.PolygonCollider {
+	return qt.GetInactiveItems()
+}
+
+func (qt *QTreeNode) collectorFxCollectAll() []*component.PolygonCollider {
+	return qt.GetAllItems()
+}
+
+func (qt *QTreeNode) chooseCollectorFx(mode QueryMode) qtreeNodeCollectorFunc {
+	switch mode {
+	case ActiveOnly:
+		return qt.collectorFxCollectActive
+	case InactiveOnly:
+		return qt.collectorFxCollectInactive
+	case All:
+		return qt.collectorFxCollectAll
+	default:
+		return qt.collectorFxCollectAll
+	}
+}
 
 func NewQuadTree(maintainanceArea physics.Rectangle, loadFactor int, minDivision float64) *QuadTree {
 	if minDivision < 32 {
@@ -66,6 +104,7 @@ func NewQuadTree(maintainanceArea physics.Rectangle, loadFactor int, minDivision
 		minDivision: minDivision,
 		looseOffset: 0,
 		mu:          &lock.SpinLock{},
+		lookup:      make(map[base.IGameObject2D]*QTreeNode),
 	}
 }
 
@@ -77,12 +116,25 @@ func NewQTreeNode(parent *QTreeNode, section int) *QTreeNode {
 		area:        boundaryDivision(parent.area, section),
 		loadFactor:  parent.loadFactor,
 		minDivision: parent.minDivision,
+		quadTree:    parent.quadTree,
 	}
 }
 
-func (qt QTreeNode) GetItems() (ret []*component.PolygonCollider) {
+func (qt QTreeNode) GetActiveItems() (ret []*component.PolygonCollider) {
 	ret = append(ret, qt.items...)
 	ret = append(ret, qt.inlineItems...)
+	return ret
+}
+
+func (qt QTreeNode) GetInactiveItems() (ret []*component.PolygonCollider) {
+	ret = append(ret, qt.inactiveItems...)
+	return ret
+}
+
+func (qt QTreeNode) GetAllItems() (ret []*component.PolygonCollider) {
+	ret = append(ret, qt.items...)
+	ret = append(ret, qt.inlineItems...)
+	ret = append(ret, qt.inactiveItems...)
 	return ret
 }
 
@@ -104,22 +156,22 @@ func (qt *QuadTree) Traverse(fn QTreeTraverseFunc) {
 	if qt.root == nil {
 		return
 	}
-	qt.root.doTraverse(fn, qt.area)
+	qt.root.doTraverse(fn)
 }
 
 // TraverseNeedLock is a safer version of traverse.
 // When you're doing a traverse in rendering routine, you must use this.
 func (qt *QuadTree) TraverseWithLock(fn QTreeTraverseFunc) {
-	qtlogger.Debug("--begin--")
-	timer := time.Now()
+	// qtlogger.Debug("--begin--")
+	// timer := time.Now()
 	qt.mu.Lock()
 	defer qt.mu.Unlock()
 	if qt.root == nil {
 		return
 	}
-	qt.root.doTraverse(fn, qt.area)
-	qtlogger.Debug("--end--")
-	qtlogger.Debugf("cost = %v", time.Since(timer))
+	qt.root.doTraverse(fn)
+	// qtlogger.Debug("--end--")
+	// qtlogger.Debugf("cost = %v", time.Since(timer))
 }
 
 func (qt *QuadTree) Insert(collider *component.PolygonCollider) {
@@ -129,14 +181,60 @@ func (qt *QuadTree) Insert(collider *component.PolygonCollider) {
 			area:        qt.area,
 			loadFactor:  qt.loadFactor,
 			minDivision: qt.minDivision,
+			quadTree:    qt,
 		}
 	}
 	// judge fully outside of maintainance area.
+	qt.mu.Lock()
 	if !collider.Collider.GetBoundingBox().ToRectangle().Intersect(&qt.area) {
-		qt.root.inlineItems = append(qt.root.inlineItems, collider)
+		qt.root.doInsertInline(collider)
+		qt.mu.Unlock()
 		return
 	}
-	qt.root.doInsert(collider)
+	qt.root.insertRecursively(collider)
+	qt.mu.Unlock()
+}
+
+func (qt *QuadTree) Deactivate(collider *component.PolygonCollider) bool {
+	node, ok := qt.lookup[collider.I()]
+	if !ok {
+		panic("failed to find correlated node in look up table")
+	}
+	node.quadTree.mu.Lock()
+	idx := node.searchFromNormal(collider)
+	if idx >= 0 {
+		node.deleteFromNormal(idx)
+		node.doInsertInactive(collider)
+		node.quadTree.mu.Unlock()
+		return true
+	}
+	idx = node.searchFromInline(collider)
+	if idx >= 0 {
+		node.deleteFromInline(idx)
+		node.doInsertInactive(collider)
+		node.quadTree.mu.Unlock()
+		return true
+	}
+	node.quadTree.mu.Unlock()
+	return false
+}
+
+func (qt *QuadTree) Activate(collider *component.PolygonCollider) bool {
+	node, ok := qt.lookup[collider.I()]
+	if !ok {
+		panic("failed to find correlated node in look up table")
+	}
+	node.quadTree.mu.Lock()
+	idx := node.searchFromInactive(collider)
+	if idx >= 0 {
+		node.deleteFromInactive(idx)
+		node.quadTree.mu.Unlock()
+		qt.Insert(collider)
+		return true
+	} else {
+		node.quadTree.mu.Unlock()
+	}
+	return false
 }
 
 func (qt *QTreeNode) tryNodeMerge() {
@@ -162,12 +260,32 @@ func (qt *QTreeNode) tryNodeMerge() {
 			if eachChild == nil {
 				continue
 			}
+
 			parent.items = append(parent.items, eachChild.items...)
+			parent.inactiveItems = append(parent.items, eachChild.inactiveItems...)
+
+			quadTree := eachChild.quadTree
+			for idx, item := range eachChild.items {
+				eachChild.items[idx] = nil
+				quadTree.setLookup(item.I(), parent, "try node merge 1")
+
+			}
+
+			for idx, item := range eachChild.inactiveItems {
+				eachChild.inactiveItems[idx] = nil
+				quadTree.setLookup(item.I(), parent, "try node merge 2")
+			}
+
 			// no need to handle inline items, because leaf node has no inline items.
 		}
 		if parent.parent != nil {
 			// parent's inline items move to grandparent.
+			quadTree := parent.quadTree
 			parent.parent.inlineItems = append(parent.inlineItems, parent.parent.inlineItems...)
+			for idx, item := range parent.inlineItems {
+				parent.inlineItems[idx] = nil
+				quadTree.setLookup(item.I(), parent.parent, "try node merge 3")
+			}
 		}
 		// abandon all childs
 		parent.children = nil
@@ -175,82 +293,129 @@ func (qt *QTreeNode) tryNodeMerge() {
 }
 
 func (qt *QTreeNode) Delete(collider *component.PolygonCollider) {
+	qt.quadTree.mu.Lock()
+	qt.UnsafeDelete(collider)
+	qt.quadTree.mu.Unlock()
+}
+
+// UnsafeDelete deletes item without acquiring lock.
+// Don't use this if you don't know what you're doing.
+// Use Delete() instead.
+func (qt *QTreeNode) UnsafeDelete(collider *component.PolygonCollider) {
 	for idx, item := range qt.items {
 		if item == collider {
-			qt.items = doDeleteFromArray(idx, qt.items)
-			qt.tryNodeMerge()
+			qt.deleteFromNormal(idx)
 			return
 		}
 	}
 	for idx, item := range qt.inlineItems {
 		if item == collider {
-			qt.inlineItems = doDeleteFromArray(idx, qt.inlineItems)
+			qt.deleteFromInline(idx)
 			return
 		}
 	}
 }
 
+func (qt *QTreeNode) deleteFromNormal(idx int) {
+	qt.quadTree.deleteLookup(qt.items[idx].I(), "deleteFromNormal")
+	qt.items = doDeleteFromArray(idx, qt.items)
+	qt.tryNodeMerge()
+}
+
+func (qt *QTreeNode) deleteFromInline(idx int) {
+	qt.quadTree.deleteLookup(qt.inlineItems[idx].I(), "deleteFromInline")
+	qt.inlineItems = doDeleteFromArray(idx, qt.inlineItems)
+}
+
+func (qt *QTreeNode) deleteFromInactive(idx int) {
+	qt.quadTree.deleteLookup(qt.inactiveItems[idx].I(), "deleteFromInactive")
+	qt.inactiveItems = doDeleteFromArray(idx, qt.inactiveItems)
+}
+
+func (qt *QTreeNode) searchFromNormal(collider *component.PolygonCollider) (index int) {
+	return doSearchFromArray(qt.items, collider)
+}
+
+func (qt *QTreeNode) searchFromInline(collider *component.PolygonCollider) (index int) {
+	return doSearchFromArray(qt.inlineItems, collider)
+}
+
+func (qt *QTreeNode) searchFromInactive(collider *component.PolygonCollider) (index int) {
+	return doSearchFromArray(qt.inactiveItems, collider)
+}
+
+func doSearchFromArray(arr []*component.PolygonCollider, target *component.PolygonCollider) (index int) {
+	for index = 0; index < len(arr); index++ {
+		if target == arr[index] {
+			return index
+		}
+	}
+	return -1
+}
+
 func doDeleteFromArray(index int, arr []*component.PolygonCollider) (ret []*component.PolygonCollider) {
-	ret = append(arr[:index], arr[index+1:]...)
+	last := len(arr) - 1
+	arr[index] = arr[last]
+	arr[last] = nil
+	ret = arr[:last]
 	return ret
 }
 
-func (qt *QuadTree) QueryByPoint(position linalg.Vector2f64) []*component.PolygonCollider {
+func (qt *QuadTree) QueryByPoint(position linalg.Vector2f64, mode QueryMode) []*component.PolygonCollider {
 	result := make([]*component.PolygonCollider, 0)
-	qt.root.doQuery(position, &result)
+	qt.root.doQuery(position, mode, &result)
 	return result
 }
 
-func (qt *QuadTree) QueryByRect(rect physics.Rectangle) []*component.PolygonCollider {
+func (qt *QuadTree) QueryByRect(rect physics.Rectangle, mode QueryMode) []*component.PolygonCollider {
 	result := make([]*component.PolygonCollider, 0)
-	for _, qtnode := range qt.root.children {
-		qtnode.doQueryByRect(rect, &result)
-	}
+	// query inactive
+	qt.root.doQueryByRect(rect, mode, &result)
 	return result
 }
 
-func (qt *QuadTree) QueryByRay(r physics.Ray) []*component.PolygonCollider {
+func (qt *QuadTree) QueryByRay(r physics.Ray, mode QueryMode) []*component.PolygonCollider {
 	result := make([]*component.PolygonCollider, 0)
-	for idx, qtnode := range qt.root.children {
-		qtnode.doQueryByRay(r, boundaryDivision(qt.area, idx), &result)
-	}
+	qt.root.doQueryByRay(r, mode, &result)
 	return result
 }
 
-func (qt *QTreeNode) doQueryByRect(rect physics.Rectangle, result *[]*component.PolygonCollider) {
+func (qt *QTreeNode) doQueryByRect(rect physics.Rectangle, mode QueryMode, result *[]*component.PolygonCollider) {
 	if qt == nil {
 		return
 	}
+	collectorFunc := qt.chooseCollectorFx(mode)
 	if rect.IntersectWithRectangle(qt.GetArea()) {
-		*result = append(*result, qt.GetItems()...)
+		*result = append(*result, collectorFunc()...)
 	}
 	for _, childNode := range qt.children {
-		childNode.doQueryByRect(rect, result)
+		childNode.doQueryByRect(rect, mode, result)
 	}
 }
 
-func (qt *QTreeNode) doQueryByRay(r physics.Ray, area physics.Rectangle, result *[]*component.PolygonCollider) {
+func (qt *QTreeNode) doQueryByRay(r physics.Ray, mode QueryMode, result *[]*component.PolygonCollider) {
 	if qt == nil {
 		return
 	}
-	if r.IntersectPolygon(area.ToPolygon()) {
+	collectorFunc := qt.chooseCollectorFx(mode)
+	if r.IntersectPolygon(qt.area.ToPolygon()) {
 		if len(qt.children) > 0 {
-			for idx, qtnode := range qt.children {
-				qtnode.doQueryByRay(r, boundaryDivision(area, idx), result)
+			for _, qtnode := range qt.children {
+				qtnode.doQueryByRay(r, mode, result)
 			}
 		} else {
-			*result = append(*result, qt.GetItems()...)
+			*result = append(*result, collectorFunc()...)
 		}
 	}
 }
 
-func (qt *QTreeNode) doTraverse(fn QTreeTraverseFunc, boundary physics.Rectangle) {
+func (qt *QTreeNode) doTraverse(fn QTreeTraverseFunc) {
 	if qt == nil {
 		return
 	}
 	if len(qt.children) > 0 {
-		for i, elem := range qt.children {
-			elem.doTraverse(fn, boundaryDivision(boundary, i))
+		for _, elem := range qt.children {
+			elem.doTraverse(fn)
 		}
 	}
 	for idx, item := range qt.items {
@@ -271,13 +436,15 @@ func (qt *QTreeNode) doTraverse(fn QTreeTraverseFunc, boundary physics.Rectangle
 	}
 }
 
-func (qt *QTreeNode) doQuery(position linalg.Vector2f64, result *[]*component.PolygonCollider) {
+func (qt *QTreeNode) doQuery(position linalg.Vector2f64, mode QueryMode, result *[]*component.PolygonCollider) {
 	if qt == nil {
 		return
 	}
 	// no matter it is a leaf node or not, add all is item into the result.
 	// because parental nodes stores colliders that are exactly at boundary edges.
-	*result = append(*result, qt.GetItems()...)
+	collectorFunc := qt.chooseCollectorFx(mode)
+
+	*result = append(*result, collectorFunc()...)
 
 	if len(qt.children) == 0 {
 		return
@@ -293,38 +460,33 @@ func (qt *QTreeNode) doQuery(position linalg.Vector2f64, result *[]*component.Po
 	yPos := position.Y > center.Y
 	if xPos {
 		if yPos {
-			qt.children[Section1].doQuery(position, result)
+			qt.children[Section1].doQuery(position, mode, result)
 			return
 		}
-		qt.children[Section4].doQuery(position, result)
+		qt.children[Section4].doQuery(position, mode, result)
 		return
 	}
 	if yPos {
-		qt.children[Section2].doQuery(position, result)
+		qt.children[Section2].doQuery(position, mode, result)
 		return
 	}
-	qt.children[Section3].doQuery(position, result)
+	qt.children[Section3].doQuery(position, mode, result)
 }
 
-func (qt *QTreeNode) doInsert(collider *component.PolygonCollider) {
+func (qt *QTreeNode) insertRecursively(collider *component.PolygonCollider) {
 	if qt == nil {
 		return
 	}
 	if qt.children == nil {
 		qtlogger.Debugf("normal insert, %v, area = %v", collider.Collider.GetWorldVertices(), qt.area)
-		qt.items = append(qt.items, collider)
+		qt.doInsertNormal(collider)
 		if len(qt.items) > qt.loadFactor {
 			if qt.area.Height > qt.minDivision && qt.area.Width > qt.minDivision {
 				// split
-				qt.children = []*QTreeNode{
-					NewQTreeNode(qt, Section1),
-					NewQTreeNode(qt, Section2),
-					NewQTreeNode(qt, Section3),
-					NewQTreeNode(qt, Section4),
-				}
+				qt.children = qt.newChildren()
 				qtlogger.Debugf("trigger split, area = %v", qt.area)
 				for _, item := range qt.items {
-					qt.insertIntoChild0(item)
+					qt.insertIntoChildRecursively(item)
 				}
 				qt.items = []*component.PolygonCollider{}
 			}
@@ -332,27 +494,51 @@ func (qt *QTreeNode) doInsert(collider *component.PolygonCollider) {
 		return
 	}
 	// insert into its descendants.
-	qt.insertIntoChild0(collider)
+	qt.insertIntoChildRecursively(collider)
 }
 
-func (qt *QTreeNode) insertIntoChild0(collider *component.PolygonCollider) {
+func (qt *QTreeNode) insertIntoChildRecursively(collider *component.PolygonCollider) {
 
 	whichSection := qt.GetIntersectedSection(collider.Collider.GetBoundingBox())
+
 	if whichSection == Overlap {
 		// overlap, insert into current node's inlineItem map
-		qt.inlineItems = append(qt.inlineItems, collider)
+		qt.doInsertInline(collider)
 		qtlogger.Debugf("overlap, insert into inline, %v, area = %v", collider.Collider.GetWorldVertices(), qt.area)
 	} else if whichSection == Overflow {
 		// overflow
 		if qt.parent != nil {
 			panic("should not happen")
 		}
-		qt.inlineItems = append(qt.inlineItems, collider)
+		qt.doInsertInline(collider)
 		qtlogger.Debugf("overflow, insert into inline, %v, area = %v", collider.Collider.GetWorldVertices(), qt.area)
 	} else {
 		// normal insert, no overlap, insert into children
-		qtlogger.Debugf("searching, area = %v", qt.area)
-		qt.children[whichSection].doInsert(collider)
+		qt.children[whichSection].insertRecursively(collider)
+	}
+}
+
+func (qt *QTreeNode) doInsertInline(collider *component.PolygonCollider) {
+	qt.inlineItems = append(qt.inlineItems, collider)
+	qt.quadTree.setLookup(collider.I(), qt, "doInsertInline")
+}
+
+func (qt *QTreeNode) doInsertNormal(collider *component.PolygonCollider) {
+	qt.items = append(qt.items, collider)
+	qt.quadTree.setLookup(collider.I(), qt, "doInsertNormal")
+}
+
+func (qt *QTreeNode) doInsertInactive(collider *component.PolygonCollider) {
+	qt.inactiveItems = append(qt.inactiveItems, collider)
+	qt.quadTree.setLookup(collider.I(), qt, "doInsertInactive")
+}
+
+func (qt *QTreeNode) newChildren() []*QTreeNode {
+	return []*QTreeNode{
+		NewQTreeNode(qt, Section1),
+		NewQTreeNode(qt, Section2),
+		NewQTreeNode(qt, Section3),
+		NewQTreeNode(qt, Section4),
 	}
 }
 
@@ -416,4 +602,14 @@ func (qt *QTreeNode) GetIntersectedSection(bb physics.BoundingBox) int {
 		return Overflow
 	}
 	return whichSection
+}
+
+func (qt *QuadTree) setLookup(iobj base.IGameObject2D, node *QTreeNode, remark ...string) {
+	qtlogger.Debugf("setting lookup for %v, extra = %v", iobj.Obj().Name, remark)
+	qt.lookup[iobj] = node
+}
+
+func (qt *QuadTree) deleteLookup(iobj base.IGameObject2D, remark ...string) {
+	qtlogger.Debugf("deleting lookup for %v, extra = %v", iobj.Obj().Name, remark)
+	delete(qt.lookup, iobj)
 }

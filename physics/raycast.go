@@ -9,10 +9,6 @@ type Ray struct {
 	Origin linalg.Vector2f64
 }
 
-type RaycastHit struct {
-	Hits []linalg.Point2f64
-}
-
 func NewRay(vector linalg.Vector2f64, origin linalg.Vector2f64) *Ray {
 	return &Ray{
 		Vec:    vector,

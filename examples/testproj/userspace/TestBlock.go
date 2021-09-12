@@ -5,8 +5,6 @@ All user defined 2D objects should be put here.
 package objs
 
 import (
-	"time"
-
 	"galaxyzeta.io/engine/base"
 	"galaxyzeta.io/engine/collision"
 	"galaxyzeta.io/engine/core"
@@ -23,11 +21,10 @@ func init() {
 
 type TestBlock struct {
 	*base.GameObject2D
-	tf               *component.Transform2D
-	pc               *component.PolygonCollider
-	sr               *component.SpriteRenderer
-	SelfDestructTime time.Time
-	csys             collision.ICollisionSystem
+	tf   *component.Transform2D
+	pc   *component.PolygonCollider
+	sr   *component.SpriteRenderer
+	csys collision.ICollisionSystem
 }
 
 //TestImplementedGameObject2D_OnCreate is a public constructor.

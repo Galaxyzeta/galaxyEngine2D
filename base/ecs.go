@@ -14,6 +14,8 @@ type ISystem interface {
 	GetName() string
 	Register(IGameObject2D)
 	Unregister(IGameObject2D)
+	Activate(IGameObject2D)
+	Deactivate(IGameObject2D)
 }
 
 type SystemBase struct {

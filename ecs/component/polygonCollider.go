@@ -11,6 +11,7 @@ type PolygonCollider struct {
 	Collider physics.Polygon
 	Name     string
 	iobj2d   base.IGameObject2D // attached gameobject2D
+	Sr       *SpriteRenderer    // if spriteRenderer is not nil, collider will always synchronize with Sr's hit box.
 }
 
 func NewPolygonCollider(collider physics.Polygon, iobj2d base.IGameObject2D) *PolygonCollider {
@@ -18,6 +19,15 @@ func NewPolygonCollider(collider physics.Polygon, iobj2d base.IGameObject2D) *Po
 		Collider: collider,
 		Name:     NamePolygonCollider,
 		iobj2d:   iobj2d,
+	}
+}
+
+func NewPolygonColliderDynamicHitbox(followSr *SpriteRenderer, iobj2d base.IGameObject2D) *PolygonCollider {
+	return &PolygonCollider{
+		Collider: followSr.GetHitbox(),
+		Name:     NamePolygonCollider,
+		iobj2d:   iobj2d,
+		Sr:       followSr,
 	}
 }
 

@@ -14,7 +14,7 @@ func DrawRectangle(rect physics.Rectangle, color linalg.RgbaF64) {
 		rect.Left + rect.Width, rect.Top + rect.Height, 0, color.X, color.Y, color.Z, color.W,
 		rect.Left + rect.Width, rect.Top, 0, color.X, color.Y, color.Z, color.W,
 	}
-	linalg.WorldVertice2OpenGL(&vertices, 0, 7, cam.Pos, cam.Resolution, GetScreenResolution())
+	linalg.WorldVertice2OpenGL(&vertices, 0, 7, cam.pos, cam.resolution, GetScreenResolution())
 
 	gl.Enable(gl.BLEND)
 	GLEnableWireframe()
@@ -41,7 +41,7 @@ func DrawSegment(segment linalg.Segmentf64, color linalg.RgbaF64) {
 
 	vbo := vboManager.Borrow()
 
-	linalg.WorldVertice2OpenGL(&vertices, 0, 7, cam.Pos, cam.Resolution, GetScreenResolution())
+	linalg.WorldVertice2OpenGL(&vertices, 0, 7, cam.pos, cam.resolution, GetScreenResolution())
 	GLBindData(vbo, vertices, len(vertices)*8, gl.DYNAMIC_DRAW)
 	GLActivateShader("color")
 	gl.DrawArrays(gl.LINES, 0, 2)

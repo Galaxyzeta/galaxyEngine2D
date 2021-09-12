@@ -1,7 +1,6 @@
 package core
 
 import (
-	"os"
 	"runtime"
 	"sync"
 
@@ -12,7 +11,8 @@ import (
 func GlobalInitializer() {
 	// must get cwd
 	var err error
-	cwd, err = os.Getwd()
+	// cwd, err = os.Getwd()
+	cwd = "D:/Go/go/src/galaxyzeta.io/engine"
 	if err != nil {
 		panic(err)
 	}

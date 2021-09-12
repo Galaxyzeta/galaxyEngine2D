@@ -6,9 +6,9 @@ import (
 )
 
 type BasicComponentsBundle struct {
-	tf   *component.Transform2D
-	rb   *component.RigidBody2D
-	pc   *component.PolygonCollider
-	sr   *component.SpriteRenderer
+	tf   *component.Transform2D     `gxen:"tf"`
+	rb   *component.RigidBody2D     `gxen:"rb"`
+	pc   *component.PolygonCollider `gxen:"pc"`
+	sr   *component.SpriteRenderer  `gxen:"sr"`
 	csys collision.ICollisionSystem
 }

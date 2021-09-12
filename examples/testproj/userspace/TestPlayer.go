@@ -69,7 +69,8 @@ func TestPlayer_OnCreate() base.IGameObject2D {
 			Option: physics.PivotOption_BottomCenter,
 		},
 	})
-	this.pc = component.NewPolygonCollider(animator.Spr().GetHitbox(&this.tf.Pos, physics.Pivot{Option: physics.PivotOption_BottomCenter}), this)
+	// this.pc = component.NewPolygonCollider(animator.Spr().GetHitbox(&this.tf.Pos, physics.Pivot{Option: physics.PivotOption_BottomCenter}), this)
+	this.pc = component.NewPolygonColliderDynamicHitbox(this.sr, this)
 	this.GameObject2D = base.NewGameObject2D("player").
 		RegisterRender(__TestPlayer_OnRender).
 		RegisterStep(__TestPlayer_OnStep).
@@ -113,21 +114,49 @@ func __TestPlayer_OnStep(obj base.IGameObject2D) {
 	}
 
 	// movement
-	if input.IsKeyHeld(keys.KeyA) && !collision.HasColliderAtPolygonWithTag(this.csys, this.pc.Collider.Shift(-this.speed*2, 0), "solid") {
+	if input.IsKeyHeld(keys.KeyA) && !collision.HasColliderAtPolygonWithTag(this.csys, this.pc.Collider.Shift(-this.speed*2, 0), "solid", collision.ActiveOnly) {
 		dx = -this.speed
 		this.sr.Scale.X = -1
 		isKeyHeld = true
-	} else if input.IsKeyHeld(keys.KeyD) && !collision.HasColliderAtPolygonWithTag(this.csys, this.pc.Collider.Shift(this.speed*2, 0), "solid") {
+	} else if input.IsKeyHeld(keys.KeyD) && !collision.HasColliderAtPolygonWithTag(this.csys, this.pc.Collider.Shift(this.speed*2, 0), "solid", collision.ActiveOnly) {
 		dx = this.speed
 		this.sr.Scale.X = 1
 		isKeyHeld = true
+	}
+
+	// movement of the camera
+	if input.IsKeyHeld(keys.KeyLeft) {
+		cam := graphics.GetCurrentCamera()
+		cam.Translate(-3, 0)
+	}
+	if input.IsKeyHeld(keys.KeyRight) {
+		cam := graphics.GetCurrentCamera()
+		cam.Translate(3, 0)
+	}
+	if input.IsKeyHeld(keys.KeyUp) {
+		cam := graphics.GetCurrentCamera()
+		cam.Translate(0, -3)
+	}
+	if input.IsKeyHeld(keys.KeyDown) {
+		cam := graphics.GetCurrentCamera()
+		cam.Translate(0, 3)
+	}
+
+	// change camera
+	if input.IsKeyPressed(keys.KeyP) {
+		if graphics.GetCurrentCameraIndex() == 0 {
+			this.logger.Debugf("change camera to 1")
+			graphics.SetCurrentCamera(1)
+		} else {
+			this.logger.Debugf("change camera to 0")
+			graphics.SetCurrentCamera(0)
+		}
 	}
 
 	// shoot
 	if input.IsKeyPressed(keys.MouseButton1) {
 		projectile := sdk.Create(TestProjectile_OnCreate).(*TestProjectile)
 		projectile.selfDestructDuration = time.Second
-		projectile.createdAt = time.Now()
 		projectile.owner = this
 		cx, cy := core.GetCursorPos()
 		ox := this.tf.X()
@@ -166,7 +195,7 @@ func __TestPlayer_OnStep(obj base.IGameObject2D) {
 	}
 
 	vspeed := this.rb.GetVspeed()
-	if val := collision.ColliderAtPolygonWithTag(this.csys, this.pc.Collider.Shift(0, vspeed), "solid"); val != nil {
+	if val := collision.ColliderAtPolygonWithTag(this.csys, this.pc.Collider.Shift(0, vspeed), "solid", collision.ActiveOnly); val != nil {
 		// something is above the player / beneath the player
 		if this.isAir {
 			if vspeed < 0 {
@@ -208,8 +237,12 @@ func __TestPlayer_OnStep(obj base.IGameObject2D) {
 
 func __TestPlayer_OnRender(obj base.IGameObject2D) {
 	this := obj.(*TestPlayer)
-	this.csys.(*system.QuadTreeCollision2DSystem).Traverse(false, func(pc *component.PolygonCollider, qn *collision.QTreeNode, at collision.AreaType, idx int) bool {
+	this.csys.(*system.QuadTreeCollision2DSystem).Traverse(true, func(pc *component.PolygonCollider, qn *collision.QTreeNode, at collision.AreaType, idx int) bool {
 		graphics.DrawRectangle(qn.GetArea(), linalg.NewRgbaF64(0, 1, 0, 1))
+		if pc == nil {
+			this.logger.Warn("encounter empty PC while traversing, concurrent problem")
+			return false // no lock, which has a big posibility of encountering empty pc
+		}
 		if pc.I().Obj().Name == "player" {
 			graphics.DrawRectangle(pc.Collider.GetBoundingBox().ToRectangle(), linalg.NewRgbaF64(0, 0, 1, 1))
 			graphics.DrawRectangle(qn.GetArea().CropOutside(-1, -1), linalg.NewRgbaF64(1, 0, 0, 1))
